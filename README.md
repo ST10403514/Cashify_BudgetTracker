@@ -1,13 +1,21 @@
-README version 1.0 
+# README - Version 1.0
 
-PROG7313_PART2
+## PROG7313 - Part 2
 
-PROJECT BUILD DETAILS
+### Project Build Details
 
-Empty Views Activity
+- **Project Name**: Cashify Budget Tracker  
+- **Package**: com.mason.myapplication  
+- **Language**: Kotlin  
+- **Build System**: Kotlin DSL  
+- **Minimum API Level**: 21 (Lollipop - Android 5.0)  
 
-Cashify_BudgetTracker
-com.mason.myapplication
-Kotlin
-API 21 Lollipop - Android 5.0
-Kotlin DSL
+### Features
+- Empty Views Activity
+- Budget Tracking Functionality (Upcoming)
+
+---
+
+**Author**: MattMason/ST10403514  
+**Version**: 1.0  
+
