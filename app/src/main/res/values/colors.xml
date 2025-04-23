@@ -3,4 +3,7 @@
     <color name="purple_500">#FF6200EE</color>
     <color name="white">#FFFFFFFF</color>
     <color name="black">#FF000000</color>
+    <color name="grey_50">#FAFAFA</color>  >
+    <color name="grey_100">#F5F5F5</color>
+    <color name="grey_200">#EEEEEE</color>
 </resources>
