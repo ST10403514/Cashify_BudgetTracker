@@ -1,5 +1,10 @@
 <resources>
     <string name="app_name">Cashify_BudgetTracker</string>
+    <string name="fab_add_expense_desc">Add new expense</string>
+    <string name="logout_text">Logout</string>
+    <string name="expense_saved">Expense saved successfully</string>
+    <string name="error_saving_expense">Error saving expense: %s</string>
+    <string name="expense_photo">Expense Photo</string>
 </resources>
 
 
