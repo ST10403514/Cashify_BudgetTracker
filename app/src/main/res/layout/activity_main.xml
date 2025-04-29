@@ -1,122 +1,118 @@
 <?xml version="1.0" encoding="utf-8"?>
-<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<androidx.constraintlayout.widget.ConstraintLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
-    xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:paddingTop="32dp">
+    android:padding="16dp">
 
-    <!-- Header -->
-    <LinearLayout
-        android:id="@+id/header"
-        android:layout_width="match_parent"
+    <TextView
+        android:id="@+id/tvWelcome"
+        android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:orientation="horizontal"
-        android:padding="16dp">
+        android:text="Welcome @User"
+        android:textSize="20sp"
+        android:textStyle="bold"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent" />
 
-        <TextView
-            android:id="@+id/welcomeText"
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_weight="1"
-            android:textSize="18sp"
-            tools:text="Welcome, user@example.com"/>
+    <com.google.android.material.button.MaterialButton
+        android:id="@+id/logoutButton"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Logout"
+        android:textSize="14sp"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintTop_toTopOf="parent" />
 
-        <Button
-            android:id="@+id/logoutButton"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="@string/logout_text"/>
-    </LinearLayout>
-
-    <!-- Sorting Controls -->
     <com.google.android.material.chip.ChipGroup
-        android:id="@+id/sortChipGroup"
-        android:layout_width="match_parent"
+        android:id="@+id/chipGroup"
+        android:layout_width="0dp"
         android:layout_height="wrap_content"
-        android:layout_below="@id/header"
-        android:layout_margin="8dp"
+        app:chipSpacingHorizontal="8dp"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/tvWelcome"
+        android:layout_marginTop="24dp"
         app:singleSelection="true">
 
         <com.google.android.material.chip.Chip
             android:id="@+id/chipAll"
-            style="@style/Widget.MaterialComponents.Chip.Choice"
+            style="@style/Widget.Material3.Chip.Filter"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
+            android:minWidth="80dp"
             android:text="All"
-            android:checked="true"/>
+            android:textAlignment="center"
+            app:checkedIconEnabled="false"
+            app:chipBackgroundColor="@color/chip_background"
+            app:chipMinTouchTargetSize="48dp" />
 
         <com.google.android.material.chip.Chip
             android:id="@+id/chipIncome"
-            style="@style/Widget.MaterialComponents.Chip.Choice"
+            style="@style/Widget.Material3.Chip.Filter"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="Income"/>
+            android:minWidth="80dp"
+            android:text="Income"
+            android:textAlignment="center"
+            app:checkedIconEnabled="false"
+            app:chipBackgroundColor="@color/chip_background"
+            app:chipMinTouchTargetSize="48dp" />
 
         <com.google.android.material.chip.Chip
             android:id="@+id/chipExpenses"
-            style="@style/Widget.MaterialComponents.Chip.Choice"
+            style="@style/Widget.Material3.Chip.Filter"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="Expenses"/>
+            android:minWidth="80dp"
+            android:text="Expenses"
+            android:textAlignment="center"
+            app:checkedIconEnabled="false"
+            app:chipBackgroundColor="@color/chip_background"
+            app:chipMinTouchTargetSize="48dp" />
 
         <com.google.android.material.chip.Chip
             android:id="@+id/chipDay"
-            style="@style/Widget.MaterialComponents.Chip.Choice"
+            style="@style/Widget.Material3.Chip.Filter"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="By Day"/>
+            android:minWidth="80dp"
+            android:text="Pick Date"
+            android:textAlignment="center"
+            app:checkedIconEnabled="false"
+            app:chipBackgroundColor="@color/chip_background"
+            app:chipMinTouchTargetSize="48dp" />
 
-        <com.google.android.material.chip.Chip
-            android:id="@+id/chipMonth"
-            style="@style/Widget.MaterialComponents.Chip.Choice"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="By Month"/>
     </com.google.android.material.chip.ChipGroup>
 
-    <Spinner
-        android:id="@+id/spinnerDateFilter"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_below="@id/sortChipGroup"
-        android:layout_margin="8dp"
-        android:visibility="gone"/>
-
-    <!-- Expense List -->
     <androidx.recyclerview.widget.RecyclerView
         android:id="@+id/rvExpenses"
-        android:layout_width="match_parent"
+        android:layout_width="0dp"
         android:layout_height="0dp"
-        android:layout_below="@id/spinnerDateFilter"
-        android:layout_above="@+id/tvBalance"
-        android:padding="8dp"
-        tools:listitem="@layout/item_expense"/>
+        android:background="@android:color/white"
+        app:layout_constraintBottom_toTopOf="@id/tvBalance"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/chipGroup" />
 
-    <!-- Balance Display -->
     <TextView
         android:id="@+id/tvBalance"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_above="@id/fabAddExpense"
-        android:layout_margin="8dp"
-        android:padding="8dp"
-        android:text="Balance: R0.00"
-        android:textSize="16sp"
-        android:textStyle="bold"
-        android:background="@android:color/white"
-        android:elevation="2dp"/>
-
-    <!-- Add Button -->
-    <com.google.android.material.floatingactionbutton.FloatingActionButton
-        android:id="@+id/fabAddExpense"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_alignParentBottom="true"
-        android:layout_alignParentEnd="true"
-        android:layout_margin="16dp"
-        android:contentDescription="@string/fab_add_expense_desc"
-        android:src="@drawable/ic_add"
-        app:tint="@android:color/holo_blue_bright"/>
+        android:text="Balance: R0.00"
+        android:textSize="18sp"
+        app:layout_constraintBottom_toTopOf="@id/bottomNav"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent" />
 
-</RelativeLayout>
+    <com.google.android.material.bottomnavigation.BottomNavigationView
+        android:id="@+id/bottomNav"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:menu="@menu/bottom_nav_menu" />
+
+</androidx.constraintlayout.widget.ConstraintLayout>

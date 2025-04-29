@@ -13,4 +13,5 @@
     </style>
 
     <style name="Theme.Cashify_BudgetTracker" parent="Base.Theme.Cashify_BudgetTracker" />
+
 </resources>

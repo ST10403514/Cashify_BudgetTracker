@@ -1,10 +1,10 @@
-package com.mason.cashify_budgettracker
+package com.mason.cashify_budgettracker.data
 
 import androidx.room.Entity
 import androidx.room.PrimaryKey
 
 @Entity(tableName = "users")
 data class User(
-    @PrimaryKey val username: String,
-    val email: String
+    @PrimaryKey val id: String,
+    val username: String
 )

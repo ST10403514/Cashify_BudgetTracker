@@ -1,171 +1,229 @@
 package com.mason.cashify_budgettracker
 
+import android.app.DatePickerDialog
 import android.content.Intent
 import android.os.Bundle
-import android.view.View
-import android.widget.AdapterView
-import android.widget.ArrayAdapter
+import android.util.Log
+import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
+import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.LinearLayoutManager
-import com.google.android.material.chip.ChipGroup
+import com.google.android.material.chip.Chip
 import com.google.firebase.auth.FirebaseAuth
-import com.google.firebase.auth.ktx.auth
-import com.google.firebase.firestore.FirebaseFirestore
-import com.google.firebase.firestore.ktx.firestore
-import com.google.firebase.ktx.Firebase
+import com.mason.cashify_budgettracker.data.AppDatabase
+import com.mason.cashify_budgettracker.data.Expense
 import com.mason.cashify_budgettracker.databinding.ActivityMainBinding
-import com.mason.cashify_budgettracker.model.Expense
-import com.mason.cashify_budgettracker.adapters.ExpenseAdapter
-import java.text.NumberFormat
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+import java.text.DecimalFormat
 import java.text.SimpleDateFormat
-import java.util.*
+import java.util.Calendar
+import java.util.Locale
 
 class MainActivity : AppCompatActivity() {
 
     private lateinit var binding: ActivityMainBinding
     private lateinit var auth: FirebaseAuth
-    private lateinit var db: FirebaseFirestore
-    private lateinit var adapter: ExpenseAdapter
-    private val allExpenses = mutableListOf<Expense>()
-    private var currentFilter: String = "all" // "all", "income", "expense", "day", "month"
-    private var selectedDate: String = ""
-    private val currencyFormat = NumberFormat.getCurrencyInstance(Locale("en", "ZA")).apply {
-        currency = Currency.getInstance("ZAR")
-    }
+    private lateinit var database: AppDatabase
+    private lateinit var expenseAdapter: ExpenseAdapter
+    private var isDatabaseInitialized: Boolean = false
+    private var currentFilter: String = "all"
+    private var selectedDate: String? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        binding = ActivityMainBinding.inflate(layoutInflater)
-        setContentView(binding.root)
-
-        // Initialize Firebase
-        auth = Firebase.auth
-        db = Firebase.firestore
-
-        // Setup RecyclerView
-        adapter = ExpenseAdapter(allExpenses)
-        binding.rvExpenses.layoutManager = LinearLayoutManager(this)
-        binding.rvExpenses.adapter = adapter
-
-        // Setup sorting chips
-        setupSortingChips()
-
-        // Load user's expenses
-        loadExpenses()
-
-        // Set up FAB
-        binding.fabAddExpense.setOnClickListener {
-            startActivity(Intent(this, AddExpenseActivity::class.java))
+        try {
+            binding = ActivityMainBinding.inflate(layoutInflater)
+            setContentView(binding.root)
+            Log.d("MainActivity", "onCreate: Binding and setContentView successful")
+        } catch (e: Exception) {
+            Log.e("MainActivity", "Error in onCreate: $e")
+            Toast.makeText(this, "Error loading Main page", Toast.LENGTH_SHORT).show()
+            finish()
+            return
         }
 
+        auth = FirebaseAuth.getInstance()
+        if (auth.currentUser == null) {
+            Log.w("MainActivity", "No user logged in, redirecting to AuthActivity")
+            startActivity(Intent(this, AuthActivity::class.java))
+            finish()
+            return
+        }
+
+        // Set username
+        val username = auth.currentUser?.email?.substringBefore("@") ?: "User"
+        binding.tvWelcome.text = "Welcome @$username"
+        Log.d("MainActivity", "Username set: $username")
+
+        // Initialize RecyclerView
+        expenseAdapter = ExpenseAdapter(mutableListOf()) { expense ->
+            if (expense.photoPath.isNotEmpty()) {
+                val intent = Intent(this, ViewPhotoActivity::class.java).apply {
+                    putExtra("photoPath", expense.photoPath)
+                }
+                startActivity(intent)
+                Log.d("MainActivity", "Launching ViewPhotoActivity for expense ${expense.id}")
+            }
+        }
+        binding.rvExpenses.apply {
+            layoutManager = LinearLayoutManager(this@MainActivity)
+            adapter = expenseAdapter
+        }
+
+        // Initialize database
+        lifecycleScope.launch {
+            try {
+                database = withContext(Dispatchers.IO) {
+                    AppDatabase.getDatabase(this@MainActivity)
+                }
+                isDatabaseInitialized = true
+                Log.d("MainActivity", "Database initialized")
+                loadExpenses()
+                Log.d("MainActivity", "Expenses loaded after database initialization")
+            } catch (e: Exception) {
+                Log.e("MainActivity", "Error initializing database: $e")
+                Toast.makeText(this@MainActivity, "Error accessing database", Toast.LENGTH_SHORT).show()
+            }
+        }
+
+        // Setup chip filters
+        binding.chipGroup.setOnCheckedChangeListener { group, checkedId ->
+            when (group.findViewById<Chip>(checkedId)?.id) {
+                R.id.chipAll -> {
+                    currentFilter = "all"
+                    selectedDate = null
+                    Log.d("MainActivity", "Filter changed to: $currentFilter")
+                    loadExpenses()
+                }
+                R.id.chipExpenses -> {
+                    currentFilter = "expense"
+                    selectedDate = null
+                    Log.d("MainActivity", "Filter changed to: $currentFilter")
+                    loadExpenses()
+                }
+                R.id.chipIncome -> {
+                    currentFilter = "income"
+                    selectedDate = null
+                    Log.d("MainActivity", "Filter changed to: $currentFilter")
+                    loadExpenses()
+                }
+                R.id.chipDay -> {
+                    currentFilter = "day"
+                    showDatePicker()
+                }
+                else -> {
+                    currentFilter = "all"
+                    selectedDate = null
+                    Log.d("MainActivity", "Filter changed to: $currentFilter")
+                    loadExpenses()
+                }
+            }
+        }
+
+        // Setup logout button
         binding.logoutButton.setOnClickListener {
             auth.signOut()
             startActivity(Intent(this, AuthActivity::class.java))
             finish()
+            Log.d("MainActivity", "Logout clicked")
         }
-    }
 
-    private fun setupSortingChips() {
-        binding.sortChipGroup.setOnCheckedChangeListener { group: ChipGroup, checkedId: Int ->
-            when (checkedId) {
-                R.id.chipAll -> {
-                    currentFilter = "all"
-                    binding.spinnerDateFilter.visibility = View.GONE
-                    filterExpenses()
+        // Setup bottom navigation
+        binding.bottomNav.setOnItemSelectedListener { item ->
+            when (item.itemId) {
+                R.id.nav_home -> {
+                    Log.d("MainActivity", "Home tab selected")
+                    true
                 }
-                R.id.chipIncome -> {
-                    currentFilter = "income"
-                    binding.spinnerDateFilter.visibility = View.GONE
-                    filterExpenses()
+                R.id.nav_add -> {
+                    Log.d("MainActivity", "Navigating to AddExpenseActivity")
+                    startActivity(Intent(this, AddExpenseActivity::class.java))
+                    finish()
+                    true
                 }
-                R.id.chipExpenses -> {
-                    currentFilter = "expense"
-                    binding.spinnerDateFilter.visibility = View.GONE
-                    filterExpenses()
+                R.id.nav_goals -> {
+                    Log.d("MainActivity", "Navigating to GoalsActivity")
+                    startActivity(Intent(this, GoalsActivity::class.java))
+                    finish()
+                    true
                 }
-                R.id.chipDay -> {
-                    currentFilter = "day"
-                    setupDateSpinner(true)
-                    binding.spinnerDateFilter.visibility = View.VISIBLE
-                }
-                R.id.chipMonth -> {
-                    currentFilter = "month"
-                    setupDateSpinner(false)
-                    binding.spinnerDateFilter.visibility = View.VISIBLE
-                }
+                else -> false
             }
         }
+        binding.bottomNav.menu.findItem(R.id.nav_home)?.isChecked = true
     }
 
-    private fun setupDateSpinner(isDayFilter: Boolean) {
-        val dateFormat = if (isDayFilter) SimpleDateFormat("dd/MM/yyyy", Locale.getDefault())
-        else SimpleDateFormat("MM/yyyy", Locale.getDefault())
+    private fun showDatePicker() {
+        val calendar = Calendar.getInstance()
+        val year = calendar.get(Calendar.YEAR)
+        val month = calendar.get(Calendar.MONTH)
+        val day = calendar.get(Calendar.DAY_OF_MONTH)
 
-        val dates = allExpenses.map { it.date }.distinct()
-        val formattedDates = dates.map { date ->
-            val parts = date.split("/")
-            if (isDayFilter) date else "${parts[1]}/${parts[2]}"
-        }.distinct().sortedDescending()
-
-        val spinnerAdapter = ArrayAdapter(this, android.R.layout.simple_spinner_item, formattedDates)
-        spinnerAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item)
-        binding.spinnerDateFilter.adapter = spinnerAdapter
-
-        binding.spinnerDateFilter.onItemSelectedListener = object : AdapterView.OnItemSelectedListener {
-            override fun onItemSelected(parent: AdapterView<*>, view: View?, position: Int, id: Long) {
-                selectedDate = parent.getItemAtPosition(position).toString()
-                filterExpenses()
-            }
-
-            override fun onNothingSelected(parent: AdapterView<*>) {}
-        }
-    }
-
-    private fun filterExpenses() {
-        val filteredList = when (currentFilter) {
-            "income" -> allExpenses.filter { it.type == "income" }
-            "expense" -> allExpenses.filter { it.type == "expense" }
-            "day" -> allExpenses.filter { it.date == selectedDate }
-            "month" -> {
-                val monthYear = selectedDate.split("/")
-                allExpenses.filter {
-                    val parts = it.date.split("/")
-                    parts[1] == monthYear[0] && parts[2] == monthYear[1]
-                }
-            }
-            else -> allExpenses
-        }.sortedByDescending {
-            val parts = it.date.split("/")
-            "${parts[2]}${parts[1]}${parts[0]}"
-        }
-
-        adapter.updateData(filteredList)
-        updateBalance(filteredList)
-    }
-
-    private fun updateBalance(filteredList: List<Expense>) {
-        val income = filteredList.filter { it.type == "income" }.sumOf { it.amount }
-        val expenses = filteredList.filter { it.type == "expense" }.sumOf { it.amount }
-        val balance = income - expenses
-        binding.tvBalance.text = "Balance: ${currencyFormat.format(balance)}"
+        val datePickerDialog = DatePickerDialog(
+            this,
+            { _, selectedYear, selectedMonth, selectedDay ->
+                val formattedDate = String.format(
+                    Locale.getDefault(),
+                    "%02d/%02d/%04d",
+                    selectedDay,
+                    selectedMonth + 1,
+                    selectedYear
+                )
+                selectedDate = formattedDate
+                Log.d("MainActivity", "Date selected: $selectedDate")
+                loadExpenses()
+            },
+            year,
+            month,
+            day
+        )
+        datePickerDialog.show()
     }
 
     private fun loadExpenses() {
-        val userId = auth.currentUser?.uid ?: return
+        if (!isDatabaseInitialized) {
+            Log.w("MainActivity", "Database not initialized, skipping expense load")
+            Toast.makeText(this, "Database not ready, please wait", Toast.LENGTH_SHORT).show()
+            return
+        }
+        lifecycleScope.launch {
+            try {
+                val userId = auth.currentUser?.uid ?: return@launch
+                val expenses = withContext(Dispatchers.IO) {
+                    when (currentFilter) {
+                        "expense" -> database.expenseDao().getExpensesByType(userId, "expense")
+                        "income" -> database.expenseDao().getExpensesByType(userId, "income")
+                        "day" -> {
+                            if (selectedDate != null) {
+                                database.expenseDao().getExpensesByDate(userId, selectedDate!!)
+                            } else {
+                                emptyList()
+                            }
+                        }
+                        else -> database.expenseDao().getAllExpenses(userId)
+                    }
+                }
+                expenseAdapter.updateExpenses(expenses)
+                Log.d("MainActivity", "Fetched expenses: $expenses")
 
-        db.collection("expenses")
-            .whereEqualTo("userId", userId)
-            .get()
-            .addOnSuccessListener { documents ->
-                allExpenses.clear()
-                allExpenses.addAll(documents.toObjects(Expense::class.java))
-                filterExpenses()
-                binding.welcomeText.text = "Welcome, ${auth.currentUser?.email}"
+                // Calculate balance
+                val balance = expenses.sumOf { expense ->
+                    if (expense.type == "income") expense.amount else -expense.amount
+                }
+                binding.tvBalance.text = "Balance: R${DecimalFormat("0.00").format(balance)}"
+                Log.d("MainActivity", "Balance updated: $balance")
+            } catch (e: Exception) {
+                Log.e("MainActivity", "Error loading expenses: $e")
+                Toast.makeText(this@MainActivity, "Error loading expenses", Toast.LENGTH_SHORT).show()
             }
+        }
     }
 
     override fun onResume() {
         super.onResume()
+        Log.d("MainActivity", "onResume called")
         loadExpenses()
     }
 }

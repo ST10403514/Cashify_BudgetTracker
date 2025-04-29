@@ -7,4 +7,10 @@
     <item>Utilities</item>
     <item>Other</item>
 </string-array>
+
+    <string-array name="expense_types">
+    <item>Income</item>
+    <item>Expense</item>
+    </string-array>
     </resources>
+

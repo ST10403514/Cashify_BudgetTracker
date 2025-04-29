@@ -4,6 +4,7 @@
     <string name="logout_text">Logout</string>
     <string name="expense_saved">Expense saved successfully</string>
     <string name="error_saving_expense">Error saving expense: %s</string>
+    <string name="expense_photo">Expense Photo</string>
 </resources>
 
 
