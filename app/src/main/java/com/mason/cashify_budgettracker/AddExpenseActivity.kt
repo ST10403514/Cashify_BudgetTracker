@@ -133,7 +133,7 @@ class AddExpenseActivity : AppCompatActivity() {
             galleryLauncher.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly))
         }
 
-        binding.btnAddCategory.setOnClickListener {
+        binding.addCategoryText.setOnClickListener {
             Log.d("AddExpenseActivity", "Add Category clicked")
             showAddCategoryDialog()
         }
@@ -151,7 +151,7 @@ class AddExpenseActivity : AppCompatActivity() {
                     finish()
                     true
                 }
-                R.id.nav_add -> {
+                R.id.nav_categories -> {
                     Log.d("AddExpenseActivity", "Add tab selected")
                     true
                 }
@@ -164,7 +164,7 @@ class AddExpenseActivity : AppCompatActivity() {
                 else -> false
             }
         }
-        binding.bottomNav.menu.findItem(R.id.nav_add)?.isChecked = true
+        binding.bottomNav.menu.findItem(R.id.nav_categories)?.isChecked = true
     }
 
     override fun onSaveInstanceState(outState: Bundle) {

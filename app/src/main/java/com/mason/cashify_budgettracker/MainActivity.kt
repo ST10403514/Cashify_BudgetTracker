@@ -30,6 +30,8 @@ class MainActivity : AppCompatActivity() {
     private var isDatabaseInitialized: Boolean = false
     private var currentFilter: String = "all"
     private var selectedDate: String? = null
+    private var lastNavClickTime: Long = 0
+    private val navDebounceDelay: Long = 500 // 500ms debounce
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -130,26 +132,39 @@ class MainActivity : AppCompatActivity() {
             Log.d("MainActivity", "Logout clicked")
         }
 
+        // Setup add expense button
+        binding.btnAddExpense.setOnClickListener {
+            Log.d("MainActivity", "Navigating to AddExpenseActivity via btnAddExpense")
+            startActivity(Intent(this, AddExpenseActivity::class.java))
+        }
+
         // Setup bottom navigation
         binding.bottomNav.setOnItemSelectedListener { item ->
+            val currentTime = System.currentTimeMillis()
+            if (currentTime - lastNavClickTime < navDebounceDelay) {
+                Log.d("MainActivity", "Navigation click debounced: ${item.itemId}")
+                return@setOnItemSelectedListener false
+            }
+            lastNavClickTime = currentTime
             when (item.itemId) {
                 R.id.nav_home -> {
                     Log.d("MainActivity", "Home tab selected")
                     true
                 }
-                R.id.nav_add -> {
-                    Log.d("MainActivity", "Navigating to AddExpenseActivity")
-                    startActivity(Intent(this, AddExpenseActivity::class.java))
-                    finish()
+                R.id.nav_categories -> {
+                    Log.d("MainActivity", "Navigating to CategoriesActivity")
+                    startActivity(Intent(this, CategoriesActivity::class.java))
                     true
                 }
                 R.id.nav_goals -> {
                     Log.d("MainActivity", "Navigating to GoalsActivity")
                     startActivity(Intent(this, GoalsActivity::class.java))
-                    finish()
                     true
                 }
-                else -> false
+                else -> {
+                    Log.d("MainActivity", "Unknown navigation item: ${item.itemId}")
+                    false
+                }
             }
         }
         binding.bottomNav.menu.findItem(R.id.nav_home)?.isChecked = true
@@ -185,7 +200,7 @@ class MainActivity : AppCompatActivity() {
     private fun loadExpenses() {
         if (!isDatabaseInitialized) {
             Log.w("MainActivity", "Database not initialized, skipping expense load")
-            Toast.makeText(this, "Database not ready, please wait", Toast.LENGTH_SHORT).show()
+            Toast.makeText(this, "Loading, please wait", Toast.LENGTH_SHORT).show()
             return
         }
         lifecycleScope.launch {
@@ -202,7 +217,7 @@ class MainActivity : AppCompatActivity() {
                                 emptyList()
                             }
                         }
-                        else -> database.expenseDao().getAllExpenses(userId)
+                        else -> database.expenseDao().getExpenses(userId)
                     }
                 }
                 expenseAdapter.updateExpenses(expenses)

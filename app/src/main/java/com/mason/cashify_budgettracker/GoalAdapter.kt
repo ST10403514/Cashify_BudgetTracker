@@ -1,15 +1,17 @@
 package com.mason.cashify_budgettracker
 
-import android.net.Uri
 import android.view.LayoutInflater
 import android.view.ViewGroup
-import androidx.recyclerview.widget.DiffUtil
-import androidx.recyclerview.widget.ListAdapter
 import androidx.recyclerview.widget.RecyclerView
-import com.mason.cashify_budgettracker.data.Goal
+import com.bumptech.glide.Glide
 import com.mason.cashify_budgettracker.databinding.ItemGoalBinding
+import java.text.DecimalFormat
 
-class GoalAdapter : ListAdapter<GoalItem, GoalAdapter.GoalViewHolder>(GoalDiffCallback()) {
+class GoalAdapter : RecyclerView.Adapter<GoalAdapter.GoalViewHolder>() {
+
+    private var goals: List<GoalItem> = emptyList()
+
+    inner class GoalViewHolder(val binding: ItemGoalBinding) : RecyclerView.ViewHolder(binding.root)
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): GoalViewHolder {
         val binding = ItemGoalBinding.inflate(LayoutInflater.from(parent.context), parent, false)
@@ -17,35 +19,54 @@ class GoalAdapter : ListAdapter<GoalItem, GoalAdapter.GoalViewHolder>(GoalDiffCa
     }
 
     override fun onBindViewHolder(holder: GoalViewHolder, position: Int) {
-        holder.bind(getItem(position))
-    }
+        val goalItem = goals[position]
+        val goal = goalItem.goal
+        val totalSpent = goalItem.totalSpent
+        with(holder.binding) {
+            tvCategory.text = goal.category
+            tvDescription.text = goal.description.takeIf { it.isNotEmpty() } ?: "No description"
+            tvType.text = goal.type.replaceFirstChar { it.uppercase() }
+            tvMinMax.text = "Min: ${DecimalFormat("0.00").format(goal.minGoal)} / Max: ${DecimalFormat("0.00").format(goal.maxGoal)}"
 
-    class GoalViewHolder(private val binding: ItemGoalBinding) : RecyclerView.ViewHolder(binding.root) {
-        fun bind(goalItem: GoalItem) {
-            val goal = goalItem.goal
-            binding.tvCategory.text = goal.category
-            binding.tvDescription.text = goal.description
-            binding.tvType.text = goal.type.replaceFirstChar { char -> char.uppercase() }
-            binding.tvMinMax.text = "Min: R${String.format("%.2f", goal.minGoal)} | Max: R${String.format("%.2f", goal.maxGoal)}"
-            if (goal.photoPath.isNotEmpty()) {
-                binding.ivPhoto.setImageURI(Uri.parse(goal.photoPath))
-            } else {
-                binding.ivPhoto.setImageResource(R.drawable.ic_photo_placeholder)
-            }
+            // Calculate progress
             val progress = if (goal.maxGoal > 0) {
-                ((goalItem.totalSpent / goal.maxGoal) * 100).toInt().coerceIn(0, 100)
-            } else 0
-            binding.progressBar.progress = progress
+                ((totalSpent / goal.maxGoal) * 100).coerceIn(0.0, 100.0).toInt()
+            } else {
+                0
+            }
+            progressBar.progress = progress
+
+            // Set amount progress (e.g., "1250.00/2500.00")
+            tvAmountProgress.text = "${DecimalFormat("0.00").format(totalSpent)}/${DecimalFormat("0.00").format(goal.maxGoal)}"
+
+            // Set status message
+            tvStatus.text = if (totalSpent <= goal.maxGoal) {
+                "You're within your budget"
+            } else {
+                "You've overspent"
+            }
+
+            // Load photo
+            ivPhoto.setImageDrawable(null)
+            if (goal.photoPath.isNotEmpty()) {
+                try {
+                    Glide.with(ivPhoto.context)
+                        .load(goal.photoPath)
+                        .error(R.drawable.ic_photo_placeholder)
+                        .into(ivPhoto)
+                } catch (e: Exception) {
+                    ivPhoto.setImageResource(R.drawable.ic_photo_placeholder)
+                }
+            } else {
+                ivPhoto.setImageResource(R.drawable.ic_photo_placeholder)
+            }
         }
     }
 
-    class GoalDiffCallback : DiffUtil.ItemCallback<GoalItem>() {
-        override fun areItemsTheSame(oldItem: GoalItem, newItem: GoalItem): Boolean {
-            return oldItem.goal.id == newItem.goal.id
-        }
+    override fun getItemCount(): Int = goals.size
 
-        override fun areContentsTheSame(oldItem: GoalItem, newItem: GoalItem): Boolean {
-            return oldItem == newItem
-        }
+    fun submitList(newGoals: List<GoalItem>) {
+        goals = newGoals
+        notifyDataSetChanged()
     }
 }

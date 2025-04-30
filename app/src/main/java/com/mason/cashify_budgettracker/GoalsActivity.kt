@@ -84,9 +84,9 @@ class GoalsActivity : AppCompatActivity() {
                     finish()
                     true
                 }
-                R.id.nav_add -> {
+                R.id.nav_categories -> {
                     Log.d("GoalsActivity", "Navigating to AddExpenseActivity")
-                    startActivity(Intent(this, AddExpenseActivity::class.java))
+                    startActivity(Intent(this, CategoriesActivity::class.java))
                     finish()
                     true
                 }

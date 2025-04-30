@@ -20,45 +20,57 @@
         android:layout_height="wrap_content"
         android:layout_weight="1"
         android:orientation="vertical"
-        android:paddingStart="8dp">
+        android:paddingStart="8dp"
+        android:divider="@null"
+        android:showDividers="none">
 
+        <!-- Amount -->
         <TextView
             android:id="@+id/tvAmount"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:textSize="16sp" />
+            android:textSize="16sp"
+            android:includeFontPadding="false"
+            android:lineSpacingExtra="-4dp"/>
 
+        <!-- Category -->
         <TextView
             android:id="@+id/tvCategory"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:textSize="14sp"
-            android:textStyle="bold" />
+            android:textStyle="bold"
+            android:includeFontPadding="false"
+            android:lineSpacingExtra="-4dp"/>
 
+        <!-- Date -->
         <TextView
             android:id="@+id/tvDate"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:textSize="14sp" />
+            android:textSize="14sp"
+            android:includeFontPadding="false"
+            android:lineSpacingExtra="-4dp"/>
 
+        <!-- Time -->
         <TextView
             android:id="@+id/tvTime"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:textSize="14sp" />
+            android:textSize="14sp"
+            android:includeFontPadding="false"
+            android:lineSpacingExtra="-4dp"
+            android:paddingBottom="0dp"/>
 
-        <TextView
-            android:id="@+id/tvType"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:textSize="14sp" />
-
+        <!-- Description -->
         <TextView
             android:id="@+id/tvDescription"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:textSize="14sp" />
-
+            android:textSize="14sp"
+            android:textStyle="bold"
+            android:includeFontPadding="false"
+            android:lineSpacingExtra="-4dp"
+            android:paddingTop="0dp"/>
     </LinearLayout>
-
 </LinearLayout>

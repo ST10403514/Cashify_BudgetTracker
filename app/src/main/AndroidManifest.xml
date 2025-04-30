@@ -3,7 +3,8 @@
     xmlns:tools="http://schemas.android.com/tools">
 
     <uses-permission android:name="android.permission.INTERNET" />
-    <uses-permission android:name="android.permission.CAMERA"
+    <uses-permission
+        android:name="android.permission.CAMERA"
         tools:ignore="PermissionImpliesUnsupportedChromeOsHardware" />
     <uses-permission android:name="android.permission.READ_MEDIA_IMAGES" />
     <uses-permission
@@ -24,6 +25,9 @@
         android:theme="@style/Theme.Cashify_BudgetTracker"
         tools:targetApi="34">
         <activity
+            android:name=".CategoriesActivity"
+            android:exported="false" />
+        <activity
             android:name=".ViewPhotoActivity"
             android:exported="false" />
         <activity
@@ -34,8 +38,8 @@
             android:exported="false" />
         <activity
             android:name=".AuthActivity"
-            android:theme="@style/Theme.Cashify_BudgetTracker"
-            android:exported="true">
+            android:exported="true"
+            android:theme="@style/Theme.Cashify_BudgetTracker">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
@@ -46,6 +50,9 @@
             android:exported="false" />
         <activity
             android:name=".AddGoalActivity"
+            android:exported="false" />
+        <activity
+            android:name=".CategoryExpensesActivity"
             android:exported="false" />
 
         <provider

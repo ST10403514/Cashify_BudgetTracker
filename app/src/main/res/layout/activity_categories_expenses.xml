@@ -8,39 +8,39 @@
     android:padding="16dp">
 
     <TextView
-        android:id="@+id/tvWelcome"
+        android:id="@+id/tvTitle"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="Goals"
+        android:text="Category Expenses"
         android:textAppearance="@style/TextAppearance.MaterialComponents.Headline5"
+        android:layout_marginTop="8dp"
+        android:layout_marginBottom="16dp"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent" />
 
-    <Button
-        android:id="@+id/btnLogout"
+    <com.google.android.material.chip.Chip
+        android:id="@+id/chipDay"
+        style="@style/Widget.Material3.Chip.Filter"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="Logout"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintTop_toTopOf="parent" />
+        android:minWidth="80dp"
+        android:text="Pick Date Range"
+        android:textAlignment="center"
+        app:checkedIconEnabled="false"
+        app:chipBackgroundColor="@color/chip_background"
+        app:chipMinTouchTargetSize="48dp"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/tvTitle" />
 
     <androidx.recyclerview.widget.RecyclerView
-        android:id="@+id/rvGoals"
+        android:id="@+id/rvExpenses"
         android:layout_width="0dp"
         android:layout_height="0dp"
-        app:layout_constraintBottom_toTopOf="@id/btnAddGoal"
+        android:background="@android:color/white"
+        app:layout_constraintBottom_toTopOf="@id/bottomNav"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@id/tvWelcome" />
-
-    <com.google.android.material.button.MaterialButton
-        android:id="@+id/btnAddGoal"
-        android:layout_width="0dp"
-        android:layout_height="wrap_content"
-        android:text="Add New Goal"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintBottom_toTopOf="@id/bottomNav" />
+        app:layout_constraintTop_toBottomOf="@id/chipDay" />
 
     <com.google.android.material.bottomnavigation.BottomNavigationView
         android:id="@+id/bottomNav"

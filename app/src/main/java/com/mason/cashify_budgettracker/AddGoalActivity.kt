@@ -113,7 +113,7 @@ class AddGoalActivity : AppCompatActivity() {
             checkPermissionsAndCapturePhoto()
         }
 
-        binding.btnAddCategory.setOnClickListener {
+        binding.addCategoryText.setOnClickListener {
             Log.d("AddGoalActivity", "Add Category clicked")
             showAddCategoryDialog()
         }
@@ -131,7 +131,7 @@ class AddGoalActivity : AppCompatActivity() {
                     finish()
                     true
                 }
-                R.id.nav_add -> {
+                R.id.nav_categories -> {
                     Log.d("AddGoalActivity", "Navigating to AddExpenseActivity")
                     startActivity(Intent(this, AddExpenseActivity::class.java))
                     finish()
