@@ -12,6 +12,7 @@ data class Expense(
     val categoryId: String,
     val type: String,
     val date: String,
+    val timestamp: Long,
     val startTime: String,
     val endTime: String,
     val description: String,

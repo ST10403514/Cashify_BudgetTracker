@@ -1,6 +1,5 @@
 package com.mason.cashify_budgettracker
 
-import android.app.DatePickerDialog
 import android.content.Intent
 import android.os.Bundle
 import android.util.Log
@@ -9,6 +8,7 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.google.android.material.chip.Chip
+import com.google.android.material.datepicker.MaterialDatePicker
 import com.google.firebase.auth.FirebaseAuth
 import com.mason.cashify_budgettracker.data.AppDatabase
 import com.mason.cashify_budgettracker.data.Expense
@@ -19,6 +19,7 @@ import kotlinx.coroutines.withContext
 import java.text.DecimalFormat
 import java.text.SimpleDateFormat
 import java.util.Calendar
+import java.util.Date
 import java.util.Locale
 
 class MainActivity : AppCompatActivity() {
@@ -29,9 +30,11 @@ class MainActivity : AppCompatActivity() {
     private lateinit var expenseAdapter: ExpenseAdapter
     private var isDatabaseInitialized: Boolean = false
     private var currentFilter: String = "all"
-    private var selectedDate: String? = null
+    private var startDate: Long? = null
+    private var endDate: Long? = null
     private var lastNavClickTime: Long = 0
     private val navDebounceDelay: Long = 500 // 500ms debounce
+    private val dateFormat = SimpleDateFormat("dd/MM/yyyy", Locale.getDefault())
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -74,7 +77,7 @@ class MainActivity : AppCompatActivity() {
             adapter = expenseAdapter
         }
 
-        // Initialize database
+        // Initialize database and migrate timestamps
         lifecycleScope.launch {
             try {
                 database = withContext(Dispatchers.IO) {
@@ -82,6 +85,31 @@ class MainActivity : AppCompatActivity() {
                 }
                 isDatabaseInitialized = true
                 Log.d("MainActivity", "Database initialized")
+                // Fix existing timestamps
+                val userId = auth.currentUser?.uid ?: return@launch
+                val expenses = withContext(Dispatchers.IO) {
+                    database.expenseDao().getExpenses(userId)
+                }
+                expenses.forEach { expense ->
+                    try {
+                        val calendar = Calendar.getInstance()
+                        calendar.time = SimpleDateFormat("dd/MM/yyyy", Locale.getDefault()).parse(expense.date)
+                        calendar.set(Calendar.HOUR_OF_DAY, 0)
+                        calendar.set(Calendar.MINUTE, 0)
+                        calendar.set(Calendar.SECOND, 0)
+                        calendar.set(Calendar.MILLISECOND, 0)
+                        val newTimestamp = calendar.timeInMillis
+                        if (expense.timestamp != newTimestamp) {
+                            val updatedExpense = expense.copy(timestamp = newTimestamp)
+                            withContext(Dispatchers.IO) {
+                                database.expenseDao().insert(updatedExpense)
+                            }
+                            Log.d("MainActivity", "Updated timestamp for expense ${expense.id}: ${expense.timestamp} to $newTimestamp")
+                        }
+                    } catch (e: Exception) {
+                        Log.e("MainActivity", "Error updating timestamp for expense ${expense.id}: $e")
+                    }
+                }
                 loadExpenses()
                 Log.d("MainActivity", "Expenses loaded after database initialization")
             } catch (e: Exception) {
@@ -95,29 +123,37 @@ class MainActivity : AppCompatActivity() {
             when (group.findViewById<Chip>(checkedId)?.id) {
                 R.id.chipAll -> {
                     currentFilter = "all"
-                    selectedDate = null
+                    startDate = null
+                    endDate = null
+                    binding.chipDay.text = "Pick Date"
                     Log.d("MainActivity", "Filter changed to: $currentFilter")
                     loadExpenses()
                 }
                 R.id.chipExpenses -> {
                     currentFilter = "expense"
-                    selectedDate = null
+                    startDate = null
+                    endDate = null
+                    binding.chipDay.text = "Pick Date"
                     Log.d("MainActivity", "Filter changed to: $currentFilter")
                     loadExpenses()
                 }
                 R.id.chipIncome -> {
                     currentFilter = "income"
-                    selectedDate = null
+                    startDate = null
+                    endDate = null
+                    binding.chipDay.text = "Pick Date"
                     Log.d("MainActivity", "Filter changed to: $currentFilter")
                     loadExpenses()
                 }
                 R.id.chipDay -> {
                     currentFilter = "day"
-                    showDatePicker()
+                    showDateRangePicker()
                 }
                 else -> {
                     currentFilter = "all"
-                    selectedDate = null
+                    startDate = null
+                    endDate = null
+                    binding.chipDay.text = "Pick Date"
                     Log.d("MainActivity", "Filter changed to: $currentFilter")
                     loadExpenses()
                 }
@@ -170,31 +206,27 @@ class MainActivity : AppCompatActivity() {
         binding.bottomNav.menu.findItem(R.id.nav_home)?.isChecked = true
     }
 
-    private fun showDatePicker() {
-        val calendar = Calendar.getInstance()
-        val year = calendar.get(Calendar.YEAR)
-        val month = calendar.get(Calendar.MONTH)
-        val day = calendar.get(Calendar.DAY_OF_MONTH)
-
-        val datePickerDialog = DatePickerDialog(
-            this,
-            { _, selectedYear, selectedMonth, selectedDay ->
-                val formattedDate = String.format(
-                    Locale.getDefault(),
-                    "%02d/%02d/%04d",
-                    selectedDay,
-                    selectedMonth + 1,
-                    selectedYear
-                )
-                selectedDate = formattedDate
-                Log.d("MainActivity", "Date selected: $selectedDate")
-                loadExpenses()
-            },
-            year,
-            month,
-            day
-        )
-        datePickerDialog.show()
+    private fun showDateRangePicker() {
+        val datePicker = MaterialDatePicker.Builder.dateRangePicker()
+            .setTitleText("Select Date Range")
+            .build()
+        datePicker.addOnPositiveButtonClickListener { selection ->
+            startDate = selection.first
+            endDate = selection.second
+            val calendar = Calendar.getInstance()
+            calendar.timeInMillis = endDate!!
+            calendar.set(Calendar.HOUR_OF_DAY, 23)
+            calendar.set(Calendar.MINUTE, 59)
+            calendar.set(Calendar.SECOND, 59)
+            calendar.set(Calendar.MILLISECOND, 999)
+            endDate = calendar.timeInMillis
+            val startDateStr = dateFormat.format(Date(startDate!!))
+            val endDateStr = dateFormat.format(Date(endDate!!))
+            binding.chipDay.text = "$startDateStr - $endDateStr"
+            Log.d("MainActivity", "Date range selected: $startDateStr to $endDateStr")
+            loadExpenses()
+        }
+        datePicker.show(supportFragmentManager, "DATE_RANGE_PICKER")
     }
 
     private fun loadExpenses() {
@@ -211,8 +243,8 @@ class MainActivity : AppCompatActivity() {
                         "expense" -> database.expenseDao().getExpensesByType(userId, "expense")
                         "income" -> database.expenseDao().getExpensesByType(userId, "income")
                         "day" -> {
-                            if (selectedDate != null) {
-                                database.expenseDao().getExpensesByDate(userId, selectedDate!!)
+                            if (startDate != null && endDate != null) {
+                                database.expenseDao().getExpensesByDateRange(userId, startDate!!, endDate!!)
                             } else {
                                 emptyList()
                             }
@@ -221,7 +253,7 @@ class MainActivity : AppCompatActivity() {
                     }
                 }
                 expenseAdapter.updateExpenses(expenses)
-                Log.d("MainActivity", "Fetched expenses: $expenses")
+                Log.d("MainActivity", "Fetched expenses: ${expenses.map { it.id }}")
 
                 // Calculate balance
                 val balance = expenses.sumOf { expense ->

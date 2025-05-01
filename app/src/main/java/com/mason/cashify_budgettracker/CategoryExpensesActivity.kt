@@ -7,6 +7,7 @@ import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.LinearLayoutManager
+import com.google.android.material.chip.Chip
 import com.google.android.material.datepicker.MaterialDatePicker
 import com.google.firebase.auth.FirebaseAuth
 import com.mason.cashify_budgettracker.data.AppDatabase
@@ -16,6 +17,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.text.SimpleDateFormat
+import java.util.Calendar
 import java.util.Date
 import java.util.Locale
 
@@ -28,6 +30,8 @@ class CategoryExpensesActivity : AppCompatActivity() {
     private lateinit var category: String
     private var startDate: Long? = null
     private var endDate: Long? = null
+    private lateinit var expenseAdapter: ExpenseAdapter
+    private var currentFilter: String = "all"
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -50,7 +54,7 @@ class CategoryExpensesActivity : AppCompatActivity() {
             return
         }
 
-        category = intent.getStringExtra("category") ?: ""
+        category = intent.getStringExtra("category")?.trim() ?: ""
         if (category.isEmpty()) {
             Log.e("CategoryExpensesActivity", "No category provided in intent")
             Toast.makeText(this, "Invalid category", Toast.LENGTH_SHORT).show()
@@ -58,19 +62,26 @@ class CategoryExpensesActivity : AppCompatActivity() {
             return
         }
         binding.tvTitle.text = "$category Expenses"
+        Log.d("CategoryExpensesActivity", "Category set: $category")
 
         setupRecyclerView()
         setupBottomNavigation()
-        setupDateRangePicker()
+        setupChipFilters()
 
-        // Initialize database and load expenses
+        // Initialize database, log categories, and load expenses
         lifecycleScope.launch {
             try {
                 database = withContext(Dispatchers.IO) {
                     AppDatabase.getDatabase(this@CategoryExpensesActivity)
                 }
                 Log.d("CategoryExpensesActivity", "Database initialized")
-                loadExpenses() // Load expenses after database is ready
+                // Log all categories for debugging
+                val userId = auth.currentUser?.uid ?: return@launch
+                val categories = withContext(Dispatchers.IO) {
+                    database?.expenseDao()?.getDistinctCategories(userId) ?: emptyList()
+                }
+                Log.d("CategoryExpensesActivity", "Available categories: $categories")
+                loadExpenses()
             } catch (e: Exception) {
                 Log.e("CategoryExpensesActivity", "Error initializing database: $e")
                 Toast.makeText(this@CategoryExpensesActivity, "Error accessing database", Toast.LENGTH_SHORT).show()
@@ -80,21 +91,22 @@ class CategoryExpensesActivity : AppCompatActivity() {
     }
 
     private fun setupRecyclerView() {
+        expenseAdapter = ExpenseAdapter(mutableListOf()) { expense ->
+            try {
+                if (expense.photoPath.isNotEmpty()) {
+                    val intent = Intent(this@CategoryExpensesActivity, ViewPhotoActivity::class.java)
+                    intent.putExtra("photoPath", expense.photoPath)
+                    startActivity(intent)
+                    Log.d("CategoryExpensesActivity", "Launching ViewPhotoActivity for expense ${expense.id}")
+                }
+            } catch (e: Exception) {
+                Log.e("CategoryExpensesActivity", "Error opening photo for expense ${expense.id}: $e")
+                Toast.makeText(this@CategoryExpensesActivity, "Error viewing photo", Toast.LENGTH_SHORT).show()
+            }
+        }
         binding.rvExpenses.apply {
             layoutManager = LinearLayoutManager(this@CategoryExpensesActivity)
-            adapter = ExpenseAdapter(mutableListOf()) { expense ->
-                try {
-                    if (expense.photoPath.isNotEmpty()) {
-                        val intent = Intent(this@CategoryExpensesActivity, ViewPhotoActivity::class.java)
-                        intent.putExtra("photoPath", expense.photoPath)
-                        startActivity(intent)
-                        Log.d("CategoryExpensesActivity", "Launching ViewPhotoActivity for expense ${expense.id}")
-                    }
-                } catch (e: Exception) {
-                    Log.e("CategoryExpensesActivity", "Error opening photo for expense ${expense.id}: $e")
-                    Toast.makeText(this@CategoryExpensesActivity, "Error viewing photo", Toast.LENGTH_SHORT).show()
-                }
-            }
+            adapter = expenseAdapter
             setHasFixedSize(true)
         }
         Log.d("CategoryExpensesActivity", "RecyclerView set up")
@@ -142,22 +154,54 @@ class CategoryExpensesActivity : AppCompatActivity() {
         }
     }
 
-    private fun setupDateRangePicker() {
-        binding.chipDay.setOnClickListener {
-            val datePicker = MaterialDatePicker.Builder.dateRangePicker()
-                .setTitleText("Select Date Range")
-                .build()
-            datePicker.addOnPositiveButtonClickListener { selection ->
-                startDate = selection.first
-                endDate = selection.second
-                val startDateStr = dateFormat.format(Date(startDate!!))
-                val endDateStr = dateFormat.format(Date(endDate!!))
-                binding.chipDay.text = "$startDateStr - $endDateStr"
-                loadExpenses()
-                Log.d("CategoryExpensesActivity", "Date range selected: $startDateStr to $endDateStr")
+    private fun setupChipFilters() {
+        binding.chipGroup.setOnCheckedChangeListener { group, checkedId ->
+            when (group.findViewById<Chip>(checkedId)?.id) {
+                R.id.chipAll -> {
+                    currentFilter = "all"
+                    startDate = null
+                    endDate = null
+                    binding.chipDay.text = "Pick Date"
+                    Log.d("CategoryExpensesActivity", "Filter changed to: $currentFilter")
+                    loadExpenses()
+                }
+                R.id.chipDay -> {
+                    currentFilter = "day"
+                    showDateRangePicker()
+                }
+                else -> {
+                    currentFilter = "all"
+                    startDate = null
+                    endDate = null
+                    binding.chipDay.text = "Pick Date"
+                    Log.d("CategoryExpensesActivity", "Filter changed to: $currentFilter")
+                    loadExpenses()
+                }
             }
-            datePicker.show(supportFragmentManager, "DATE_RANGE_PICKER")
         }
+    }
+
+    private fun showDateRangePicker() {
+        val datePicker = MaterialDatePicker.Builder.dateRangePicker()
+            .setTitleText("Select Date Range")
+            .build()
+        datePicker.addOnPositiveButtonClickListener { selection ->
+            startDate = selection.first
+            endDate = selection.second
+            val calendar = Calendar.getInstance()
+            calendar.timeInMillis = endDate!!
+            calendar.set(Calendar.HOUR_OF_DAY, 23)
+            calendar.set(Calendar.MINUTE, 59)
+            calendar.set(Calendar.SECOND, 59)
+            calendar.set(Calendar.MILLISECOND, 999)
+            endDate = calendar.timeInMillis
+            val startDateStr = dateFormat.format(Date(startDate!!))
+            val endDateStr = dateFormat.format(Date(endDate!!))
+            binding.chipDay.text = "$startDateStr - $endDateStr"
+            Log.d("CategoryExpensesActivity", "Date range selected: $startDateStr to $endDateStr (timestamps: $startDate to $endDate)")
+            loadExpenses()
+        }
+        datePicker.show(supportFragmentManager, "DATE_RANGE_PICKER")
     }
 
     private fun loadExpenses() {
@@ -171,21 +215,30 @@ class CategoryExpensesActivity : AppCompatActivity() {
             }
             try {
                 val expenses = withContext(Dispatchers.IO) {
-                    if (startDate != null && endDate != null) {
-                        db.expenseDao().getExpensesByCategoryAndDateRange(
-                            userId,
-                            category,
-                            startDate!!,
-                            endDate!!
-                        )
-                    } else {
-                        db.expenseDao().getExpensesByCategory(userId, category)
+                    when (currentFilter) {
+                        "day" -> {
+                            if (startDate != null && endDate != null) {
+                                Log.d("CategoryExpensesActivity", "Querying expenses for userId=$userId, category=$category, timestamp=$startDate to $endDate")
+                                db.expenseDao().getExpensesByCategoryAndDateRange(
+                                    userId,
+                                    category,
+                                    startDate!!,
+                                    endDate!!
+                                )
+                            } else {
+                                emptyList()
+                            }
+                        }
+                        else -> {
+                            Log.d("CategoryExpensesActivity", "Querying all expenses for userId=$userId, category=$category")
+                            db.expenseDao().getExpensesByCategory(userId, category)
+                        }
                     }
                 }.toMutableList()
-                (binding.rvExpenses.adapter as? ExpenseAdapter)?.updateExpenses(expenses)
-                Log.d("CategoryExpensesActivity", "Fetched expenses: ${expenses.map { it.id }}")
+                expenseAdapter.updateExpenses(expenses)
+                Log.d("CategoryExpensesActivity", "Fetched expenses: ${expenses.map { it.id to it.date }}")
                 if (expenses.isEmpty()) {
-                    Toast.makeText(this@CategoryExpensesActivity, "No expenses found for $category", Toast.LENGTH_SHORT).show()
+                    Toast.makeText(this@CategoryExpensesActivity, "No expenses found for $category in selected range", Toast.LENGTH_SHORT).show()
                 }
             } catch (e: Exception) {
                 Log.e("CategoryExpensesActivity", "Error loading expenses: $e")

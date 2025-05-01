@@ -44,6 +44,7 @@ class CategoriesActivity : AppCompatActivity() {
         }
 
         setupRecyclerView()
+        setupBottomNavigation()
 
         lifecycleScope.launch {
             try {

@@ -2,8 +2,8 @@ package com.mason.cashify_budgettracker.data
 
 import androidx.room.Dao
 import androidx.room.Insert
-import androidx.room.Query
 import androidx.room.OnConflictStrategy
+import androidx.room.Query
 
 @Dao
 interface ExpenseDao {
@@ -17,18 +17,18 @@ interface ExpenseDao {
     @Query("SELECT * FROM expenses WHERE userId = :userId AND type = :type")
     suspend fun getExpensesByType(userId: String, type: String): List<Expense>
 
-    @Query("SELECT * FROM expenses WHERE userId = :userId AND date = :date")
-    suspend fun getExpensesByDate(userId: String, date: String): List<Expense>
-
-    @Query("SELECT category, SUM(amount) as total FROM expenses WHERE userId = :userId GROUP BY category")
-    suspend fun getCategoryTotals(userId: String): List<CategoryTotal>
+    @Query("SELECT * FROM expenses WHERE userId = :userId AND timestamp BETWEEN :startDate AND :endDate")
+    suspend fun getExpensesByDateRange(userId: String, startDate: Long, endDate: Long): List<Expense>
 
     @Query("SELECT * FROM expenses WHERE userId = :userId AND category = :category")
     suspend fun getExpensesByCategory(userId: String, category: String): List<Expense>
 
-    @Query("SELECT * FROM expenses WHERE userId = :userId AND category = :category AND date = :date")
-    suspend fun getExpensesByCategoryAndDate(userId: String, category: String, date: String): List<Expense>
-
-    @Query("SELECT * FROM expenses WHERE userId = :userId AND category = :category AND strftime('%s', date, 'unixepoch') * 1000 BETWEEN :startDate AND :endDate")
+    @Query("SELECT * FROM expenses WHERE userId = :userId AND category = :category AND timestamp BETWEEN :startDate AND :endDate")
     suspend fun getExpensesByCategoryAndDateRange(userId: String, category: String, startDate: Long, endDate: Long): List<Expense>
+
+    @Query("SELECT category, SUM(CASE WHEN type = 'expense' THEN amount ELSE -amount END) as total FROM expenses WHERE userId = :userId GROUP BY category")
+    suspend fun getCategoryTotals(userId: String): List<CategoryTotal>
+
+    @Query("SELECT DISTINCT category FROM expenses WHERE userId = :userId")
+    suspend fun getDistinctCategories(userId: String): List<String>
 }

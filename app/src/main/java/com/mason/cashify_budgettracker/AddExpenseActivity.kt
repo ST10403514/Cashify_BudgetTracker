@@ -354,6 +354,23 @@ class AddExpenseActivity : AppCompatActivity() {
                     userId = userId,
                     amount = amount,
                     date = date,
+                    timestamp = try {
+                        val calendar = Calendar.getInstance()
+                        calendar.time = SimpleDateFormat("dd/MM/yyyy", Locale.getDefault()).parse(date)
+                        calendar.set(Calendar.HOUR_OF_DAY, 0)
+                        calendar.set(Calendar.MINUTE, 0)
+                        calendar.set(Calendar.SECOND, 0)
+                        calendar.set(Calendar.MILLISECOND, 0)
+                        calendar.timeInMillis
+                    } catch (e: Exception) {
+                        Log.e("AddExpenseActivity", "Error parsing date: $date", e)
+                        Calendar.getInstance().apply {
+                            set(Calendar.HOUR_OF_DAY, 0)
+                            set(Calendar.MINUTE, 0)
+                            set(Calendar.SECOND, 0)
+                            set(Calendar.MILLISECOND, 0)
+                        }.timeInMillis
+                    },
                     category = category,
                     categoryId = categoryId,
                     type = type,

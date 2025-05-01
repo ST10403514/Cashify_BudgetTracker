@@ -48,13 +48,12 @@ class AuthActivity : AppCompatActivity() {
         // Login button
         binding.btnLogin.setOnClickListener {
             val username = binding.loginUsername.text.toString().trim()
-            val email = binding.loginEmail.text.toString().trim()
             val password = binding.loginPassword.text.toString().trim()
-            if (email.isEmpty() || password.isEmpty()) {
-                Toast.makeText(this, "Please fill email and password", Toast.LENGTH_SHORT).show()
+            if (username.isEmpty() || password.isEmpty()) {
+                Toast.makeText(this, "Please fill username and password", Toast.LENGTH_SHORT).show()
                 return@setOnClickListener
             }
-            loginUser(email, password)
+            loginUser(username, password)
         }
 
         // Signup button
@@ -66,41 +65,44 @@ class AuthActivity : AppCompatActivity() {
                 Toast.makeText(this, "Please fill all fields", Toast.LENGTH_SHORT).show()
                 return@setOnClickListener
             }
-            // Call signupUser with email, password, username
             signupUser(email, password, username)
         }
     }
 
-    private fun loginUser(email: String, password: String) {
-        Log.d("AuthActivity", "Attempting login with email: $email")
-        auth.signInWithEmailAndPassword(email, password)
-            .addOnCompleteListener(this) { task ->
-                if (task.isSuccessful) {
-                    val userId = auth.currentUser?.uid ?: run {
-                        Toast.makeText(this@AuthActivity, "Failed to get user ID", Toast.LENGTH_SHORT).show()
-                        Log.e("AuthActivity", "No user ID after login")
-                        return@addOnCompleteListener
-                    }
-                    lifecycleScope.launch {
-                        val user = withContext(Dispatchers.IO) {
-                            database.userDao().getUserById(userId)
-                        }
-                        if (user == null) {
-                            Toast.makeText(this@AuthActivity, "User data not found, please sign up again", Toast.LENGTH_SHORT).show()
-                            Log.e("AuthActivity", "User not found in Room for id: $userId")
-                            auth.signOut()
-                            return@launch
-                        }
-                        Log.d("AuthActivity", "Login successful for user: ${user.username}, id: $userId")
-                        Toast.makeText(this@AuthActivity, "Login successful", Toast.LENGTH_SHORT).show()
-                        startActivity(Intent(this@AuthActivity, MainActivity::class.java))
-                        finish()
-                    }
-                } else {
-                    Toast.makeText(this@AuthActivity, "Login failed: ${task.exception?.message}", Toast.LENGTH_SHORT).show()
-                    Log.e("AuthActivity", "Login failed", task.exception)
+    private fun loginUser(username: String, password: String) {
+        Log.d("AuthActivity", "Attempting login with username: $username")
+        lifecycleScope.launch {
+            try {
+                val user = withContext(Dispatchers.IO) {
+                    database.userDao().getUserByUsername(username)
                 }
+                if (user == null) {
+                    Toast.makeText(this@AuthActivity, "Username not found", Toast.LENGTH_SHORT).show()
+                    Log.e("AuthActivity", "No user found for username: $username")
+                    return@launch
+                }
+                auth.signInWithEmailAndPassword(user.email, password)
+                    .addOnCompleteListener(this@AuthActivity) { task ->
+                        if (task.isSuccessful) {
+                            val userId = auth.currentUser?.uid ?: run {
+                                Toast.makeText(this@AuthActivity, "Failed to get user ID", Toast.LENGTH_SHORT).show()
+                                Log.e("AuthActivity", "No user ID after login")
+                                return@addOnCompleteListener
+                            }
+                            Log.d("AuthActivity", "Login successful for user: $username, id: $userId")
+                            Toast.makeText(this@AuthActivity, "Login successful", Toast.LENGTH_SHORT).show()
+                            startActivity(Intent(this@AuthActivity, MainActivity::class.java))
+                            finish()
+                        } else {
+                            Toast.makeText(this@AuthActivity, "Login failed: ${task.exception?.message}", Toast.LENGTH_SHORT).show()
+                            Log.e("AuthActivity", "Login failed", task.exception)
+                        }
+                    }
+            } catch (e: Exception) {
+                Toast.makeText(this@AuthActivity, "Error accessing user data", Toast.LENGTH_SHORT).show()
+                Log.e("AuthActivity", "Error querying user by username: $username", e)
             }
+        }
     }
 
     private fun signupUser(email: String, password: String, username: String) {
@@ -114,14 +116,25 @@ class AuthActivity : AppCompatActivity() {
                         return@addOnCompleteListener
                     }
                     lifecycleScope.launch {
-                        val newUser = User(id = userId, username = username)
-                        withContext(Dispatchers.IO) {
-                            database.userDao().insert(newUser)
+                        try {
+                            val newUser = User(id = userId, username = username, email = email)
+                            withContext(Dispatchers.IO) {
+                                database.userDao().insert(newUser)
+                            }
+                            Log.d("AuthActivity", "User signed up and saved to Room: $username, id: $userId")
+                            Toast.makeText(this@AuthActivity, "Signup successful, please login", Toast.LENGTH_SHORT).show()
+                            // Switch to login layout
+                            binding.loginLayout.visibility = android.view.View.VISIBLE
+                            binding.signupLayout.visibility = android.view.View.GONE
+                            binding.toggleButton.text = "Switch to Signup"
+                            binding.loginUsername.setText(username) // Prefill username
+                            binding.loginPassword.text?.clear() // Clear password
+                            auth.signOut() // Ensure user is signed out
+                        } catch (e: Exception) {
+                            Toast.makeText(this@AuthActivity, "Error saving user data", Toast.LENGTH_SHORT).show()
+                            Log.e("AuthActivity", "Error saving user to Room: $username", e)
+                            auth.signOut()
                         }
-                        Log.d("AuthActivity", "User signed up and saved to Room: $username, id: $userId")
-                        Toast.makeText(this@AuthActivity, "Signup successful", Toast.LENGTH_SHORT).show()
-                        startActivity(Intent(this@AuthActivity, MainActivity::class.java))
-                        finish()
                     }
                 } else {
                     Toast.makeText(this@AuthActivity, "Signup failed: ${task.exception?.message}", Toast.LENGTH_SHORT).show()
