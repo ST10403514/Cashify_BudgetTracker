@@ -33,23 +33,38 @@ class MainActivity : AppCompatActivity() {
     private var startDate: Long? = null
     private var endDate: Long? = null
     private var lastNavClickTime: Long = 0
-    private val navDebounceDelay: Long = 500 // 500ms debounce
+    private val navDebounceDelay: Long = 500
     private val dateFormat = SimpleDateFormat("dd/MM/yyyy", Locale.getDefault())
+
+    /*
+        -------------------------------------------------------------------------
+        Title: Modern Android development with Kotlin
+        Author: Hardik Trivedi
+        Date Published: 2020
+        Date Accessed: 20 April 2025
+        Code Version: v21.20 the
+        Availability: https://medium.com/androiddevelopers/modern-kotlin-android
+        -------------------------------------------------------------------------
+     */
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         try {
+            //Inflate layout and set content view
             binding = ActivityMainBinding.inflate(layoutInflater)
             setContentView(binding.root)
             Log.d("MainActivity", "onCreate: Binding and setContentView successful")
         } catch (e: Exception) {
+            //Handle error in loading MainActivity layout
             Log.e("MainActivity", "Error in onCreate: $e")
             Toast.makeText(this, "Error loading Main page", Toast.LENGTH_SHORT).show()
             finish()
             return
         }
 
+        //Initialize Firebase Authentication
         auth = FirebaseAuth.getInstance()
+        //Check if user is logged in, if not, redirect to AuthActivity
         if (auth.currentUser == null) {
             Log.w("MainActivity", "No user logged in, redirecting to AuthActivity")
             startActivity(Intent(this, AuthActivity::class.java))
@@ -57,14 +72,15 @@ class MainActivity : AppCompatActivity() {
             return
         }
 
-        // Set username
+        //Set username in welcome message
         val username = auth.currentUser?.email?.substringBefore("@") ?: "User"
         binding.tvWelcome.text = "Welcome @$username"
         Log.d("MainActivity", "Username set: $username")
 
-        // Initialize RecyclerView
+        //Initialize RecyclerView for displaying expenses
         expenseAdapter = ExpenseAdapter(mutableListOf()) { expense ->
             if (expense.photoPath.isNotEmpty()) {
+                //If expense has a photo, navigate to ViewPhotoActivity
                 val intent = Intent(this, ViewPhotoActivity::class.java).apply {
                     putExtra("photoPath", expense.photoPath)
                 }
@@ -77,21 +93,23 @@ class MainActivity : AppCompatActivity() {
             adapter = expenseAdapter
         }
 
-        // Initialize database and migrate timestamps
+        //Initialize database and fix existing timestamps for expenses
         lifecycleScope.launch {
             try {
+                // Initialize the database
                 database = withContext(Dispatchers.IO) {
                     AppDatabase.getDatabase(this@MainActivity)
                 }
                 isDatabaseInitialized = true
                 Log.d("MainActivity", "Database initialized")
-                // Fix existing timestamps
+                // Fix existing timestamps in the expense database
                 val userId = auth.currentUser?.uid ?: return@launch
                 val expenses = withContext(Dispatchers.IO) {
                     database.expenseDao().getExpenses(userId)
                 }
                 expenses.forEach { expense ->
                     try {
+                        // Update expense timestamps to use midnight of the given date
                         val calendar = Calendar.getInstance()
                         calendar.time = SimpleDateFormat("dd/MM/yyyy", Locale.getDefault()).parse(expense.date)
                         calendar.set(Calendar.HOUR_OF_DAY, 0)
@@ -118,7 +136,7 @@ class MainActivity : AppCompatActivity() {
             }
         }
 
-        // Setup chip filters
+        //Setup chip filters for filtering expenses
         binding.chipGroup.setOnCheckedChangeListener { group, checkedId ->
             when (group.findViewById<Chip>(checkedId)?.id) {
                 R.id.chipAll -> {
@@ -160,7 +178,7 @@ class MainActivity : AppCompatActivity() {
             }
         }
 
-        // Setup logout button
+        //Setup logout button to log out and navigate to AuthActivity
         binding.logoutButton.setOnClickListener {
             auth.signOut()
             startActivity(Intent(this, AuthActivity::class.java))
@@ -168,13 +186,13 @@ class MainActivity : AppCompatActivity() {
             Log.d("MainActivity", "Logout clicked")
         }
 
-        // Setup add expense button
+        //Setup add expense button to navigate to AddExpenseActivity
         binding.btnAddExpense.setOnClickListener {
             Log.d("MainActivity", "Navigating to AddExpenseActivity via btnAddExpense")
             startActivity(Intent(this, AddExpenseActivity::class.java))
         }
 
-        // Setup bottom navigation
+        //Setup bottom navigation with debounce to avoid multiple quick clicks
         binding.bottomNav.setOnItemSelectedListener { item ->
             val currentTime = System.currentTimeMillis()
             if (currentTime - lastNavClickTime < navDebounceDelay) {
@@ -203,9 +221,11 @@ class MainActivity : AppCompatActivity() {
                 }
             }
         }
+        //Set default selected item to home tab
         binding.bottomNav.menu.findItem(R.id.nav_home)?.isChecked = true
     }
 
+    //Show date range picker for selecting a date range
     private fun showDateRangePicker() {
         val datePicker = MaterialDatePicker.Builder.dateRangePicker()
             .setTitleText("Select Date Range")
@@ -229,6 +249,7 @@ class MainActivity : AppCompatActivity() {
         datePicker.show(supportFragmentManager, "DATE_RANGE_PICKER")
     }
 
+    //Load and filter expenses based on current filter and date range
     private fun loadExpenses() {
         if (!isDatabaseInitialized) {
             Log.w("MainActivity", "Database not initialized, skipping expense load")
@@ -255,7 +276,7 @@ class MainActivity : AppCompatActivity() {
                 expenseAdapter.updateExpenses(expenses)
                 Log.d("MainActivity", "Fetched expenses: ${expenses.map { it.id }}")
 
-                // Calculate balance
+                //Calculate balance based on fetched expenses
                 val balance = expenses.sumOf { expense ->
                     if (expense.type == "income") expense.amount else -expense.amount
                 }
@@ -268,6 +289,7 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
+    //Lifecycle method to reload expenses when activity is resumed
     override fun onResume() {
         super.onResume()
         Log.d("MainActivity", "onResume called")

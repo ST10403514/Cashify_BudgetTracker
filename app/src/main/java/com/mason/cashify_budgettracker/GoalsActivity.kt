@@ -27,6 +27,8 @@ class GoalsActivity : AppCompatActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+
+        //Initializing binding and setting the content view
         try {
             binding = ActivityGoalsBinding.inflate(layoutInflater)
             setContentView(binding.root)
@@ -38,6 +40,7 @@ class GoalsActivity : AppCompatActivity() {
             return
         }
 
+        //Checking if user is logged in, if not, redirecting to authentication activity
         auth = FirebaseAuth.getInstance()
         if (auth.currentUser == null) {
             Log.w("GoalsActivity", "No user logged in, redirecting to AuthActivity")
@@ -46,8 +49,10 @@ class GoalsActivity : AppCompatActivity() {
             return
         }
 
+        //Setting up RecyclerView for displaying goals
         setupRecyclerView()
 
+        //Initializing database and loading goals using lifecycleScope
         lifecycleScope.launch {
             try {
                 database = withContext(Dispatchers.IO) {
@@ -62,11 +67,13 @@ class GoalsActivity : AppCompatActivity() {
             }
         }
 
+        //Adding click listener to button for adding new goals
         binding.btnAddGoal.setOnClickListener {
             Log.d("GoalsActivity", "Add New Goal clicked")
             startActivity(Intent(this, AddGoalActivity::class.java))
         }
 
+        //Handling bottom navigation item selection
         binding.bottomNav.setOnItemSelectedListener { item ->
             when (item.itemId) {
                 R.id.nav_home -> {
@@ -91,6 +98,7 @@ class GoalsActivity : AppCompatActivity() {
         binding.bottomNav.menu.findItem(R.id.nav_goals)?.isChecked = true
     }
 
+    //Method to set up RecyclerView for displaying goals
     private fun setupRecyclerView() {
         goalAdapter = GoalAdapter()
         binding.rvGoals.apply {
@@ -100,6 +108,7 @@ class GoalsActivity : AppCompatActivity() {
         Log.d("GoalsActivity", "RecyclerView set up")
     }
 
+    //Method to load goals from database and match them with expenses
     private fun loadGoals() {
         lifecycleScope.launch {
             val userId = auth.currentUser?.uid ?: return@launch
@@ -110,12 +119,15 @@ class GoalsActivity : AppCompatActivity() {
                 return@launch
             }
             try {
+                //Fetching goals and expenses from database
                 val goals = withContext(Dispatchers.IO) {
                     db.goalDao().getGoals(userId)
                 }
                 val expenses = withContext(Dispatchers.IO) {
                     db.expenseDao().getExpenses(userId)
                 }
+
+                //mapping goals to GoalItem which includes matching expenses
                 val goalItems = goals.map { goal ->
                     val matchingExpenses = expenses.filter { expense ->
                         val matches = expense.category == goal.category &&
@@ -129,10 +141,12 @@ class GoalsActivity : AppCompatActivity() {
                         matches
                     }
                     val totalSpent = matchingExpenses.sumOf { expense ->
-                        expense.amount // Always positive for goal progress
+                        expense.amount //Always positive for goal progress
                     }
                     GoalItem(goal, totalSpent)
                 }
+
+                //Updating adapter with the loaded goal items
                 goalAdapter.submitList(goalItems)
                 Log.d("GoalsActivity", "Goals loaded: $goalItems")
             } catch (e: Exception) {
@@ -142,6 +156,7 @@ class GoalsActivity : AppCompatActivity() {
         }
     }
 
+    //Method to extract month and year from a date string
     private fun extractMonthYear(date: String): String {
         return try {
             val sdfInput = SimpleDateFormat("dd/MM/yyyy", Locale.getDefault()).apply {
@@ -160,6 +175,7 @@ class GoalsActivity : AppCompatActivity() {
         }
     }
 
+    //Method called when activity is resumed, refreshing  goals list
     override fun onResume() {
         super.onResume()
         Log.d("GoalsActivity", "onResume called")
@@ -169,4 +185,5 @@ class GoalsActivity : AppCompatActivity() {
     }
 }
 
+//data class to represent goal item with total spent amount
 data class GoalItem(val goal: Goal, val totalSpent: Double)

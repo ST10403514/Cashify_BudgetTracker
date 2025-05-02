@@ -4,55 +4,41 @@
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:layout_marginTop="32dp"
-    android:padding="16dp">
+    android:layout_marginTop="30dp"
+    android:padding="15dp">
 
+    <!-- Heading text -->
     <TextView
         android:id="@+id/tvTitle"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:text="Add Goal"
         android:textAppearance="@style/TextAppearance.MaterialComponents.Headline5"
-        android:layout_marginTop="32dp"
+        android:layout_marginTop="25dp"
         android:layout_marginBottom="16dp"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent" />
 
+    <!-- Back button -->
     <Button
         android:id="@+id/btnBack"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_marginTop="32dp"
+        android:layout_marginTop="15dp"
         android:text="Back"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintTop_toTopOf="parent" />
 
-    <com.google.android.material.textfield.TextInputLayout
-        android:id="@+id/monthInputLayout"
-        android:layout_width="0dp"
-        android:layout_height="wrap_content"
-        android:hint="Goal Month"
-        android:layout_marginTop="12dp"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@id/tvTitle">
-
-        <com.google.android.material.textfield.TextInputEditText
-            android:id="@+id/monthInput"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:inputType="none"
-            android:focusable="false" />
-    </com.google.android.material.textfield.TextInputLayout>
-
+    <!-- Category dropdown -->
     <com.google.android.material.textfield.TextInputLayout
         android:id="@+id/categoryInputLayout"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
         android:hint="Category"
+        android:layout_marginTop="12dp"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@id/monthInputLayout"
+        app:layout_constraintTop_toBottomOf="@id/tvTitle"
         style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox.ExposedDropdownMenu">
 
         <com.google.android.material.textfield.MaterialAutoCompleteTextView
@@ -62,6 +48,7 @@
             android:inputType="none" />
     </com.google.android.material.textfield.TextInputLayout>
 
+    <!-- Add Category link -->
     <TextView
         android:id="@+id/addCategoryText"
         android:layout_width="wrap_content"
@@ -69,21 +56,79 @@
         android:text="Add Category"
         android:textColor="#7ed0ec"
         android:textStyle="bold"
-        android:minHeight="48dp"
+        android:minHeight="45dp"
         android:background="?attr/selectableItemBackground"
-        android:layout_marginTop="8dp"
+        android:layout_marginTop="5dp"
         android:padding="8dp"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@id/categoryInputLayout" />
 
-    <RadioGroup
-        android:id="@+id/radioGroup"
+    <!-- Description text -->
+    <com.google.android.material.textfield.TextInputLayout
+        android:id="@+id/descriptionInputLayout"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
-        android:orientation="horizontal"
+        android:hint="Description"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@id/addCategoryText">
+
+        <com.google.android.material.textfield.TextInputEditText
+            android:id="@+id/descriptionInput"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:inputType="text" />
+    </com.google.android.material.textfield.TextInputLayout>
+
+    <!-- Minimum Goal text-->
+    <com.google.android.material.textfield.TextInputLayout
+        android:id="@+id/minGoalInputLayout"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:hint="Minimum Goal Amount"
+        android:layout_marginTop="5dp"
+
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/descriptionInputLayout">
+
+        <com.google.android.material.textfield.TextInputEditText
+            android:id="@+id/minGoalInput"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:inputType="numberDecimal" />
+    </com.google.android.material.textfield.TextInputLayout>
+
+    <!-- Maximum Goal text -->
+    <com.google.android.material.textfield.TextInputLayout
+        android:id="@+id/maxGoalInputLayout"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:hint="Maximum Goal Amount"
+        android:layout_marginTop="5dp"
+
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/minGoalInputLayout">
+
+        <com.google.android.material.textfield.TextInputEditText
+            android:id="@+id/maxGoalInput"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:inputType="numberDecimal" />
+    </com.google.android.material.textfield.TextInputLayout>
+
+    <!-- Income/Expense radiogroup -->
+    <RadioGroup
+        android:id="@+id/radioGroup"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/maxGoalInputLayout"
+        android:gravity="center_horizontal"
+        android:layout_marginTop="5dp">
 
         <RadioButton
             android:id="@+id/radioIncome"
@@ -99,63 +144,38 @@
             android:text="Expense" />
     </RadioGroup>
 
+
+    <!-- Goal Month text -->
     <com.google.android.material.textfield.TextInputLayout
-        android:id="@+id/minGoalInputLayout"
+        android:id="@+id/monthInputLayout"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
-        android:hint="Minimum Goal"
+        android:hint="Goal Month"
+        android:layout_marginTop="5dp"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@id/radioGroup">
 
         <com.google.android.material.textfield.TextInputEditText
-            android:id="@+id/minGoalInput"
+            android:id="@+id/monthInput"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:inputType="numberDecimal" />
+            android:inputType="none"
+            android:focusable="false" />
     </com.google.android.material.textfield.TextInputLayout>
 
-    <com.google.android.material.textfield.TextInputLayout
-        android:id="@+id/maxGoalInputLayout"
-        android:layout_width="0dp"
-        android:layout_height="wrap_content"
-        android:hint="Maximum Goal"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@id/minGoalInputLayout">
-
-        <com.google.android.material.textfield.TextInputEditText
-            android:id="@+id/maxGoalInput"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:inputType="numberDecimal" />
-    </com.google.android.material.textfield.TextInputLayout>
-
-    <com.google.android.material.textfield.TextInputLayout
-        android:id="@+id/descriptionInputLayout"
-        android:layout_width="0dp"
-        android:layout_height="wrap_content"
-        android:hint="Description"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@id/maxGoalInputLayout">
-
-        <com.google.android.material.textfield.TextInputEditText
-            android:id="@+id/descriptionInput"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:inputType="text" />
-    </com.google.android.material.textfield.TextInputLayout>
-
+    <!-- Add Photo button -->
     <com.google.android.material.button.MaterialButton
         android:id="@+id/btnCapturePhoto"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
         android:text="Add Photo"
+        android:layout_marginTop="15dp"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@id/descriptionInputLayout" />
+        app:layout_constraintTop_toBottomOf="@id/monthInputLayout" />
 
+    <!-- Add Photo -->
     <ImageView
         android:id="@+id/ivPhoto"
         android:layout_width="100dp"
@@ -165,15 +185,18 @@
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@id/btnCapturePhoto" />
 
+    <!-- Save button -->
     <com.google.android.material.button.MaterialButton
         android:id="@+id/btnSave"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
         android:text="Save"
+        android:layout_marginTop="5dp"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@id/ivPhoto" />
 
+    <!-- Nav bar -->
     <com.google.android.material.bottomnavigation.BottomNavigationView
         android:id="@+id/bottomNav"
         android:layout_width="0dp"

@@ -11,34 +11,41 @@ import com.mason.cashify_budgettracker.databinding.ItemGoalBinding
 import java.text.SimpleDateFormat
 import java.util.*
 
+//Adapter for displaying Goal items in a RecyclerView
 class GoalAdapter : ListAdapter<GoalItem, GoalAdapter.GoalViewHolder>(GoalDiffCallback()) {
 
+    //Creates a new ViewHolder by inflating the item layout
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): GoalViewHolder {
         val binding = ItemGoalBinding.inflate(LayoutInflater.from(parent.context), parent, false)
         return GoalViewHolder(binding)
     }
 
+    //Binds data from GoalItem to ViewHolder at the specified position
     override fun onBindViewHolder(holder: GoalViewHolder, position: Int) {
         holder.bind(getItem(position))
     }
 
+    //ViewHolder for holding goal item views and binding data
     class GoalViewHolder(private val binding: ItemGoalBinding) : RecyclerView.ViewHolder(binding.root) {
+        //Formatting date and month using SimpleDateFormat
         private val monthFormat = SimpleDateFormat("MM/yyyy", Locale.getDefault())
         private val dateFormat = SimpleDateFormat("dd/MM/yyyy", Locale.getDefault())
 
+        //Binds a GoalItem to the corresponding views in the ViewHolder
         fun bind(goalItem: GoalItem) {
             val goal = goalItem.goal
             val totalSpent = goalItem.totalSpent
 
+            //Setting values for each text view in the item layout
             binding.tvCategory.text = goal.category
+            binding.tvDescription.text = goal.description.takeIf { it.isNotEmpty() } ?: "No description"
             binding.tvMonth.text = "Month: ${goal.month}"
             binding.tvCreatedAt.text = "Created: ${dateFormat.format(Date(goal.createdAt))}"
-            binding.tvDescription.text = goal.description.takeIf { it.isNotEmpty() } ?: "No description"
             binding.tvType.text = goal.type.replaceFirstChar { it.uppercase() }
             binding.tvMinMax.text = "Min: ${CurrencyUtils.formatCurrency(goal.minGoal)} | Max: ${CurrencyUtils.formatCurrency(goal.maxGoal)}"
             binding.tvAmountProgress.text = "Spent: ${CurrencyUtils.formatCurrency(totalSpent)}"
 
-            // Load photo
+            //Conditionally load photo if it exists
             if (goal.photoPath.isNotEmpty()) {
                 binding.ivPhoto.visibility = View.VISIBLE
                 Glide.with(binding.ivPhoto.context)
@@ -50,6 +57,7 @@ class GoalAdapter : ListAdapter<GoalItem, GoalAdapter.GoalViewHolder>(GoalDiffCa
                 binding.ivPhoto.visibility = View.GONE
             }
 
+            //cCalculating the progress based on the totalSpent and maxGoal
             val progress = when {
                 goal.maxGoal == 0.0 -> 0f
                 else -> {
@@ -59,6 +67,7 @@ class GoalAdapter : ListAdapter<GoalItem, GoalAdapter.GoalViewHolder>(GoalDiffCa
             }
             binding.progressBar.progress = progress.toInt()
 
+            //Setting status text based on goal type and progress
             binding.tvStatus.text = when {
                 goal.type == "expense" && totalSpent > goal.maxGoal -> "Over Budget"
                 goal.type == "expense" && totalSpent >= goal.minGoal -> "Within Budget"
@@ -68,11 +77,15 @@ class GoalAdapter : ListAdapter<GoalItem, GoalAdapter.GoalViewHolder>(GoalDiffCa
         }
     }
 
+
+    //DiffUtil callback to optimize list updates by comparing old and new GoalItem objects.
     class GoalDiffCallback : DiffUtil.ItemCallback<GoalItem>() {
+        //Check if two items represent the same goal item
         override fun areItemsTheSame(oldItem: GoalItem, newItem: GoalItem): Boolean {
             return oldItem.goal.id == newItem.goal.id
         }
 
+        //Check if content of two goal items are the same
         override fun areContentsTheSame(oldItem: GoalItem, newItem: GoalItem): Boolean {
             return oldItem == newItem
         }

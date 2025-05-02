@@ -88,6 +88,17 @@ class AuthActivity : AppCompatActivity() {
                     return@launch
                 }
 
+                /*
+                    -----------------------------------------------------------------
+                    Title: Add Firebase to your Android project
+                    Author: Google Developers
+                    Date Published: 2023
+                    Date Accessed: 25 April 2025
+                    Code Version: 11.0.0.
+                    Availability: https://firebase.google.com/docs/android/setup
+                    -----------------------------------------------------------------
+                 */
+
                 //Sign in to Firebase using the retrieved email
                 auth.signInWithEmailAndPassword(user.email, password)
                     .addOnCompleteListener(this@AuthActivity) { task ->

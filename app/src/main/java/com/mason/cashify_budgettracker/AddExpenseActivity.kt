@@ -31,27 +31,33 @@ import java.util.*
 
 class AddExpenseActivity : AppCompatActivity() {
 
+    //View binding and Firebase/Auth/DB variables
     private lateinit var binding: ActivityAddExpenseBinding
     private lateinit var auth: FirebaseAuth
     private lateinit var database: AppDatabase
     private var photoUri: Uri? = null
+
+    //Lists for managing categories
     private val categories = mutableListOf<String>()
     private val defaultCategories = listOf("Food", "Transport", "Entertainment", "Bills", "Other")
+
+    //Calendar for date/time input
     private val calendar = Calendar.getInstance()
     private var isDatabaseInitialized: Boolean = false
 
+    //Launcher for selecting photo from gallery
     private val galleryLauncher = registerForActivityResult(ActivityResultContracts.PickVisualMedia()) { uri: Uri? ->
         Log.d("AddExpenseActivity", "Gallery result: uri=$uri")
         if (uri != null) {
             try {
-                // Copy photo to app storage
+                //Copy photo to app-specific storage
                 val photoFile = createPhotoFile()
                 contentResolver.openInputStream(uri)?.use { input ->
                     FileOutputStream(photoFile).use { output ->
                         input.copyTo(output)
                     }
                 }
-                // Get FileProvider URI
+                //Get FileProvider URI to safely access the photo
                 photoUri = FileProvider.getUriForFile(
                     this,
                     "com.mason.cashify_budgettracker.fileprovider",
@@ -67,6 +73,7 @@ class AddExpenseActivity : AppCompatActivity() {
                 binding.ivPhoto.visibility = View.GONE
             }
         } else {
+            //User cancelled photo selection
             photoUri = null
             Toast.makeText(this, "Photo selection cancelled", Toast.LENGTH_SHORT).show()
             Log.d("AddExpenseActivity", "Photo selection cancelled")
@@ -75,6 +82,8 @@ class AddExpenseActivity : AppCompatActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+
+        //Try to inflate layout and setup view binding
         try {
             binding = ActivityAddExpenseBinding.inflate(layoutInflater)
             setContentView(binding.root)
@@ -86,6 +95,7 @@ class AddExpenseActivity : AppCompatActivity() {
             return
         }
 
+        //Initialize Firebase Auth and check for user login
         auth = FirebaseAuth.getInstance()
         if (auth.currentUser == null) {
             Log.w("AddExpenseActivity", "No user logged in, redirecting to AuthActivity")
@@ -94,11 +104,13 @@ class AddExpenseActivity : AppCompatActivity() {
             return
         }
 
+        //Back button to close activity
         binding.btnBack.setOnClickListener {
             Log.d("AddExpenseActivity", "Back button clicked")
             finish()
         }
 
+        //Restore photo URI if activity is recreated
         if (savedInstanceState != null) {
             photoUri = savedInstanceState.getParcelable("photoUri")
             if (photoUri != null) {
@@ -108,6 +120,7 @@ class AddExpenseActivity : AppCompatActivity() {
             }
         }
 
+        //Initialize database and load categories from DB
         lifecycleScope.launch {
             try {
                 database = withContext(Dispatchers.IO) {
@@ -123,31 +136,35 @@ class AddExpenseActivity : AppCompatActivity() {
             }
         }
 
-        // Setup category dropdown
+        //Set up category dropdown list
         val categoryAdapter = ArrayAdapter(this, android.R.layout.simple_dropdown_item_1line, categories)
         (binding.categoryInput as MaterialAutoCompleteTextView).setAdapter(categoryAdapter)
         binding.categoryInput.setOnClickListener {
             binding.categoryInput.showDropDown()
         }
 
-        // Setup date and time pickers
+        //Initialize date and time picker functionality
         setupDateTimePickers()
 
+        //Button for selecting photo
         binding.btnCapturePhoto.setOnClickListener {
             Log.d("AddExpenseActivity", "Select Photo clicked")
             galleryLauncher.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly))
         }
 
+        //Add custom category button
         binding.addCategoryText.setOnClickListener {
             Log.d("AddExpenseActivity", "Add Category clicked")
             showAddCategoryDialog()
         }
 
+        //Save expense button
         binding.btnSave.setOnClickListener {
             Log.d("AddExpenseActivity", "Save clicked")
             saveExpense()
         }
 
+        //Bottom navigation bar actions
         binding.bottomNav.setOnItemSelectedListener { item ->
             when (item.itemId) {
                 R.id.nav_home -> {
@@ -169,15 +186,19 @@ class AddExpenseActivity : AppCompatActivity() {
                 else -> false
             }
         }
-        binding.bottomNav.menu.findItem(R.id.nav_categories)?.isChecked = true
+
+        //Set home tab as selected
+        binding.bottomNav.menu.findItem(R.id.nav_home)?.isChecked = true
     }
 
+    //Save photo URI when activity is recreated
     override fun onSaveInstanceState(outState: Bundle) {
         super.onSaveInstanceState(outState)
         outState.putParcelable("photoUri", photoUri)
         Log.d("AddExpenseActivity", "onSaveInstanceState: Saved photoUri")
     }
 
+    //Create a new photo file with timestamp
     private fun createPhotoFile(): File {
         val timeStamp = SimpleDateFormat("yyyyMMdd_HHmmss", Locale.getDefault()).format(Date())
         val storageDir = File(filesDir, "photos")
@@ -185,76 +206,44 @@ class AddExpenseActivity : AppCompatActivity() {
         return File(storageDir, "JPEG_${timeStamp}.jpg")
     }
 
+    //Setup UI for picking date and time
     private fun setupDateTimePickers() {
         binding.dateInput.setOnClickListener {
             val year = calendar.get(Calendar.YEAR)
             val month = calendar.get(Calendar.MONTH)
             val day = calendar.get(Calendar.DAY_OF_MONTH)
-            DatePickerDialog(
-                this,
-                { _, selectedYear, selectedMonth, selectedDay ->
-                    val formattedDate = String.format(
-                        Locale.getDefault(),
-                        "%02d/%02d/%04d",
-                        selectedDay,
-                        selectedMonth + 1,
-                        selectedYear
-                    )
-                    binding.dateInput.setText(formattedDate)
-                    Log.d("AddExpenseActivity", "Date selected: $formattedDate")
-                },
-                year,
-                month,
-                day
-            ).show()
+            DatePickerDialog(this, { _, selectedYear, selectedMonth, selectedDay ->
+                val formattedDate = String.format("%02d/%02d/%04d", selectedDay, selectedMonth + 1, selectedYear)
+                binding.dateInput.setText(formattedDate)
+                Log.d("AddExpenseActivity", "Date selected: $formattedDate")
+            }, year, month, day).show()
             Log.d("AddExpenseActivity", "DatePickerDialog shown")
         }
 
         binding.startTimeInput.setOnClickListener {
             val hour = calendar.get(Calendar.HOUR_OF_DAY)
             val minute = calendar.get(Calendar.MINUTE)
-            TimePickerDialog(
-                this,
-                { _, selectedHour, selectedMinute ->
-                    val formattedTime = String.format(
-                        Locale.getDefault(),
-                        "%02d:%02d",
-                        selectedHour,
-                        selectedMinute
-                    )
-                    binding.startTimeInput.setText(formattedTime)
-                    Log.d("AddExpenseActivity", "Start time selected: $formattedTime")
-                },
-                hour,
-                minute,
-                true
-            ).show()
+            TimePickerDialog(this, { _, selectedHour, selectedMinute ->
+                val formattedTime = String.format("%02d:%02d", selectedHour, selectedMinute)
+                binding.startTimeInput.setText(formattedTime)
+                Log.d("AddExpenseActivity", "Start time selected: $formattedTime")
+            }, hour, minute, true).show()
             Log.d("AddExpenseActivity", "TimePickerDialog shown for startTime")
         }
 
         binding.endTimeInput.setOnClickListener {
             val hour = calendar.get(Calendar.HOUR_OF_DAY)
             val minute = calendar.get(Calendar.MINUTE)
-            TimePickerDialog(
-                this,
-                { _, selectedHour, selectedMinute ->
-                    val formattedTime = String.format(
-                        Locale.getDefault(),
-                        "%02d:%02d",
-                        selectedHour,
-                        selectedMinute
-                    )
-                    binding.endTimeInput.setText(formattedTime)
-                    Log.d("AddExpenseActivity", "End time selected: $formattedTime")
-                },
-                hour,
-                minute,
-                true
-            ).show()
+            TimePickerDialog(this, { _, selectedHour, selectedMinute ->
+                val formattedTime = String.format("%02d:%02d", selectedHour, selectedMinute)
+                binding.endTimeInput.setText(formattedTime)
+                Log.d("AddExpenseActivity", "End time selected: $formattedTime")
+            }, hour, minute, true).show()
             Log.d("AddExpenseActivity", "TimePickerDialog shown for endTime")
         }
     }
 
+    //Load categories from database and merge with defaults
     private fun loadCategories() {
         if (!isDatabaseInitialized) {
             Log.w("AddExpenseActivity", "Database not initialized, skipping category load")
@@ -280,6 +269,7 @@ class AddExpenseActivity : AppCompatActivity() {
         }
     }
 
+    //Show dialog to add a custom category
     private fun showAddCategoryDialog() {
         try {
             val builder = AlertDialog.Builder(this)
@@ -318,6 +308,7 @@ class AddExpenseActivity : AppCompatActivity() {
         }
     }
 
+    //Save expense to database
     private fun saveExpense() {
         if (!isDatabaseInitialized) {
             Toast.makeText(this, "Database not initialized, please try again", Toast.LENGTH_SHORT).show()
@@ -325,6 +316,7 @@ class AddExpenseActivity : AppCompatActivity() {
             return
         }
 
+        //Collect user inputs
         val category = binding.categoryInput.text.toString().trim()
         val type = if (binding.radioIncome.isChecked) "income" else "expense"
         val amountStr = binding.amountInput.text.toString().trim()
@@ -334,6 +326,7 @@ class AddExpenseActivity : AppCompatActivity() {
         val description = binding.descriptionInput.text.toString().trim()
         val userId = auth.currentUser?.uid ?: return
 
+        //Input validation
         if (category.isEmpty() || amountStr.isEmpty() || date.isEmpty() || startTime.isEmpty() || endTime.isEmpty()) {
             Toast.makeText(this, "Please fill all required fields", Toast.LENGTH_SHORT).show()
             Log.w("AddExpenseActivity", "Validation failed: Empty fields")
@@ -347,6 +340,7 @@ class AddExpenseActivity : AppCompatActivity() {
             return
         }
 
+        //Insert expense into DB
         lifecycleScope.launch {
             try {
                 val categoryId = withContext(Dispatchers.IO) {
@@ -384,9 +378,11 @@ class AddExpenseActivity : AppCompatActivity() {
                     endTime = endTime,
                     description = description
                 )
+
                 withContext(Dispatchers.IO) {
                     database.expenseDao().insert(expense)
                 }
+
                 Toast.makeText(this@AddExpenseActivity, "Expense saved", Toast.LENGTH_SHORT).show()
                 Log.d("AddExpenseActivity", "Expense saved: $expense")
                 startActivity(Intent(this@AddExpenseActivity, MainActivity::class.java))
@@ -398,6 +394,7 @@ class AddExpenseActivity : AppCompatActivity() {
         }
     }
 
+    //Log resume event for debugging
     override fun onResume() {
         super.onResume()
         Log.d("AddExpenseActivity", "onResume called")

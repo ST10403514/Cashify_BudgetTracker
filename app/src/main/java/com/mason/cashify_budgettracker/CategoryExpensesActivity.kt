@@ -27,9 +27,11 @@ class CategoryExpensesActivity : AppCompatActivity() {
     private var endDate: Long? = null
     private lateinit var expenseAdapter: ExpenseAdapter
 
+    //onCreate method initializes the activity
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
+        //Inflate layout and set content view
         try {
             binding = ActivityCategoriesExpensesBinding.inflate(layoutInflater)
             setContentView(binding.root)
@@ -40,31 +42,41 @@ class CategoryExpensesActivity : AppCompatActivity() {
             return
         }
 
+        //Initialize FirebaseAuth instance
         auth = FirebaseAuth.getInstance()
+
+        //Check if the user is authenticated; if not, navigate to authentication screen
         if (auth.currentUser == null) {
             startActivity(Intent(this, AuthActivity::class.java))
             finish()
             return
         }
 
+        //Set back button functionality to finish the activity
         binding.btnBack.setOnClickListener {
             finish()
         }
 
+        //Retrieve category and date range passed from the previous activity
         category = intent.getStringExtra("category")?.trim() ?: ""
         startDate = intent.getLongExtra("startDate", -1).takeIf { it != -1L }
         endDate = intent.getLongExtra("endDate", -1).takeIf { it != -1L }
 
+        //Handle invalid category scenario
         if (category.isEmpty()) {
             Toast.makeText(this, "Invalid category", Toast.LENGTH_SHORT).show()
             finish()
             return
         }
 
+        //Set title for the activity based on the selected category
         binding.tvTitle.text = "$category Entries"
+
+        //Set up RecyclerView and Bottom Navigation
         setupRecyclerView()
         setupBottomNavigation()
 
+        //Launch a coroutine to initialize database and load expenses
         lifecycleScope.launch {
             try {
                 database = withContext(Dispatchers.IO) {
@@ -78,9 +90,11 @@ class CategoryExpensesActivity : AppCompatActivity() {
         }
     }
 
+    //Set up RecyclerView to display expense data
     private fun setupRecyclerView() {
         expenseAdapter = ExpenseAdapter(mutableListOf()) { expense ->
             try {
+                //If expense has a photo, allow the user to view it
                 if (expense.photoPath.isNotEmpty()) {
                     val intent = Intent(this@CategoryExpensesActivity, ViewPhotoActivity::class.java)
                     intent.putExtra("photoPath", expense.photoPath)
@@ -90,6 +104,8 @@ class CategoryExpensesActivity : AppCompatActivity() {
                 Toast.makeText(this@CategoryExpensesActivity, "Error viewing photo", Toast.LENGTH_SHORT).show()
             }
         }
+
+        //Initialize RecyclerView with LinearLayoutManager and adapter
         binding.rvExpenses.apply {
             layoutManager = LinearLayoutManager(this@CategoryExpensesActivity)
             adapter = expenseAdapter
@@ -97,6 +113,7 @@ class CategoryExpensesActivity : AppCompatActivity() {
         }
     }
 
+    //Set up Bottom Navigation to allow navigation between different sections
     private fun setupBottomNavigation() {
         binding.bottomNav.selectedItemId = R.id.nav_categories
         binding.bottomNav.setOnItemSelectedListener { item ->
@@ -118,12 +135,14 @@ class CategoryExpensesActivity : AppCompatActivity() {
         }
     }
 
+    //Load expenses from database based on category and date range
     private fun loadExpenses() {
         lifecycleScope.launch {
             val userId = auth.currentUser?.uid ?: return@launch
             val db = database ?: return@launch
 
             try {
+                // Query the database for expenses within the specified category and date range
                 val expenses = withContext(Dispatchers.IO) {
                     if (startDate != null && endDate != null) {
                         db.expenseDao().getExpensesByCategoryAndDateRange(
@@ -137,8 +156,10 @@ class CategoryExpensesActivity : AppCompatActivity() {
                     }
                 }.toMutableList()
 
+                // Update the RecyclerView adapter with the loaded expenses
                 expenseAdapter.updateExpenses(expenses)
 
+                // If no expenses are found, show a toast message
                 if (expenses.isEmpty()) {
                     Toast.makeText(this@CategoryExpensesActivity, "No expenses found in selected range", Toast.LENGTH_SHORT).show()
                 }
@@ -148,6 +169,7 @@ class CategoryExpensesActivity : AppCompatActivity() {
         }
     }
 
+    //Reload expenses when activity is resumed
     override fun onResume() {
         super.onResume()
         database?.let { loadExpenses() }

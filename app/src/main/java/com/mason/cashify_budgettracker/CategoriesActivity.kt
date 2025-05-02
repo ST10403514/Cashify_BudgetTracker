@@ -39,6 +39,7 @@ class CategoriesActivity : AppCompatActivity() {
             return
         }
 
+        //Initialize Firebase Authentication
         auth = FirebaseAuth.getInstance()
         if (auth.currentUser == null) {
             Log.w("CategoriesActivity", "No user logged in, redirecting to AuthActivity")
@@ -47,11 +48,12 @@ class CategoriesActivity : AppCompatActivity() {
             return
         }
 
+        //Setup RecyclerView, Bottom Navigation, and Chip Group
         setupRecyclerView()
         setupBottomNavigation()
-
         setupChipGroup()
 
+        //Initialize database and load categories
         lifecycleScope.launch {
             try {
                 database = withContext(Dispatchers.IO) {
@@ -67,6 +69,7 @@ class CategoriesActivity : AppCompatActivity() {
         }
     }
 
+    //Setup RecyclerView for displaying categories
     private fun setupRecyclerView() {
         categoryAdapter = CategoryAdapter { categoryTotal ->
             try {
@@ -93,6 +96,7 @@ class CategoriesActivity : AppCompatActivity() {
         Log.d("CategoriesActivity", "RecyclerView set up")
     }
 
+    //Setup Bottom Navigation with item selection actions
     private fun setupBottomNavigation() {
         binding.bottomNav.selectedItemId = R.id.nav_categories
         binding.bottomNav.setOnItemSelectedListener { item ->
@@ -125,9 +129,7 @@ class CategoriesActivity : AppCompatActivity() {
         }
     }
 
-
-
-
+    //Setup Chip Group for filtering categories based on date range
     private fun setupChipGroup() {
         binding.chipGroup.setOnCheckedChangeListener { _, checkedId ->
             when (checkedId) {
@@ -135,7 +137,7 @@ class CategoriesActivity : AppCompatActivity() {
                     Log.d("CategoriesActivity", "All chip selected")
                     selectedStartDate = null
                     selectedEndDate = null
-                    binding.chipDay.text = "Pick Date" // Reset chip text when 'All' is selected
+                    binding.chipDay.text = "Pick Date" //Reset chip text when 'All' is selected
                     loadCategories()
                 }
                 R.id.chipDay -> {
@@ -146,7 +148,7 @@ class CategoriesActivity : AppCompatActivity() {
         }
     }
 
-
+    //Show Date Range Picker to select start and end dates
     private fun showDateRangePicker() {
         val dateRangePicker = MaterialDatePicker.Builder.dateRangePicker()
             .setTitleText("Select Date Range")
@@ -155,7 +157,7 @@ class CategoriesActivity : AppCompatActivity() {
         dateRangePicker.addOnPositiveButtonClickListener { dateRange ->
             try {
                 selectedStartDate = dateRange.first
-                selectedEndDate = dateRange.second + TimeUnit.DAYS.toMillis(1) - 1 // Include end of day
+                selectedEndDate = dateRange.second + TimeUnit.DAYS.toMillis(1) - 1 //Include end of day
 
                 val dateFormat = java.text.SimpleDateFormat("dd/MM/yyyy", java.util.Locale.getDefault())
                 val startDateStr = dateFormat.format(java.util.Date(selectedStartDate!!))
@@ -171,15 +173,15 @@ class CategoriesActivity : AppCompatActivity() {
             }
         }
 
-
         dateRangePicker.addOnNegativeButtonClickListener {
             Log.d("CategoriesActivity", "Date range picker cancelled")
-            binding.chipGroup.check(R.id.chipAll) // Revert to All
+            binding.chipGroup.check(R.id.chipAll) //Revert to All
         }
 
         dateRangePicker.show(supportFragmentManager, "DATE_RANGE_PICKER")
     }
 
+    //Load categories from database, applying date range filters if set
     private fun loadCategories() {
         lifecycleScope.launch {
             val userId = auth.currentUser?.uid ?: return@launch

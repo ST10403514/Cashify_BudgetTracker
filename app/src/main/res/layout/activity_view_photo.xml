@@ -2,17 +2,27 @@
     xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:layout_marginTop="12dp"
-    android:padding="16dp"
+    android:layout_marginTop="30dp"
+    android:padding="15dp"
     android:orientation="vertical">
 
-    <Button
-        android:id="@+id/btnBack"
-        android:layout_width="wrap_content"
+    <!-- align back button to the right -->
+    <LinearLayout
+        android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginTop="18dp"
-        android:text="Back" />
+        android:orientation="horizontal"
+        android:gravity="end">
 
+        <!-- Back button -->
+        <Button
+            android:id="@+id/btnBack"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="15dp"
+            android:text="Back" />
+    </LinearLayout>
+
+    <!-- Photo display -->
     <ImageView
         android:id="@+id/ivFullPhoto"
         android:layout_width="match_parent"
