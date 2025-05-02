@@ -5,14 +5,16 @@ import androidx.room.PrimaryKey
 
 @Entity(tableName = "goals")
 data class Goal(
-    @PrimaryKey(autoGenerate = true) val id: Int = 0,
+    @PrimaryKey(autoGenerate = true)
+    val id: Int = 0,
     val userId: String,
-    val month: String,
+    val month: String, // Format: MM/yyyy
     val category: String,
     val categoryId: String,
     val type: String,
     val description: String,
     val photoPath: String,
     val minGoal: Double,
-    val maxGoal: Double
+    val maxGoal: Double,
+    val createdAt: Long // Timestamp in milliseconds
 )

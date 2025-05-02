@@ -46,7 +46,6 @@ class GoalsActivity : AppCompatActivity() {
             return
         }
 
-        // Setup RecyclerView before coroutine to avoid layout warning
         setupRecyclerView()
 
         lifecycleScope.launch {
@@ -68,8 +67,6 @@ class GoalsActivity : AppCompatActivity() {
             startActivity(Intent(this, AddGoalActivity::class.java))
         }
 
-
-
         binding.bottomNav.setOnItemSelectedListener { item ->
             when (item.itemId) {
                 R.id.nav_home -> {
@@ -79,7 +76,7 @@ class GoalsActivity : AppCompatActivity() {
                     true
                 }
                 R.id.nav_categories -> {
-                    Log.d("GoalsActivity", "Navigating to AddExpenseActivity")
+                    Log.d("GoalsActivity", "Navigating to CategoriesActivity")
                     startActivity(Intent(this, CategoriesActivity::class.java))
                     finish()
                     true
@@ -120,13 +117,20 @@ class GoalsActivity : AppCompatActivity() {
                     db.expenseDao().getExpenses(userId)
                 }
                 val goalItems = goals.map { goal ->
-                    val totalSpent = expenses
-                        .filter { expense ->
-                            expense.category == goal.category &&
-                                    expense.type == goal.type &&
-                                    extractMonthYear(expense.date) == goal.month
+                    val matchingExpenses = expenses.filter { expense ->
+                        val matches = expense.category == goal.category &&
+                                expense.type == goal.type &&
+                                extractMonthYear(expense.date) == goal.month
+                        if (matches) {
+                            Log.d("GoalsActivity", "Expense matched: date=${expense.date}, goalMonth=${goal.month}")
+                        } else {
+                            Log.d("GoalsActivity", "Expense not matched: date=${expense.date}, goalMonth=${goal.month}")
                         }
-                        .sumOf { it.amount }
+                        matches
+                    }
+                    val totalSpent = matchingExpenses.sumOf { expense ->
+                        expense.amount // Always positive for goal progress
+                    }
                     GoalItem(goal, totalSpent)
                 }
                 goalAdapter.submitList(goalItems)
@@ -140,12 +144,18 @@ class GoalsActivity : AppCompatActivity() {
 
     private fun extractMonthYear(date: String): String {
         return try {
-            val sdfInput = SimpleDateFormat("dd/MM/yyyy", Locale.getDefault())
+            val sdfInput = SimpleDateFormat("dd/MM/yyyy", Locale.getDefault()).apply {
+                isLenient = false // Strict parsing
+            }
             val sdfOutput = SimpleDateFormat("MM/yyyy", Locale.getDefault())
             val parsedDate = sdfInput.parse(date)
+            if (parsedDate == null) {
+                Log.e("GoalsActivity", "Failed to parse date: $date")
+                return ""
+            }
             sdfOutput.format(parsedDate)
         } catch (e: Exception) {
-            Log.e("GoalsActivity", "Error parsing date: $date", e)
+            Log.e("GoalsActivity", "Error parsing date: $date, error: $e")
             ""
         }
     }

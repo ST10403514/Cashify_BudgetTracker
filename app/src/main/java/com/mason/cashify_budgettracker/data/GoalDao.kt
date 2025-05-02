@@ -2,11 +2,13 @@ package com.mason.cashify_budgettracker.data
 
 import androidx.room.Dao
 import androidx.room.Insert
+import androidx.room.OnConflictStrategy
 import androidx.room.Query
 
 @Dao
 interface GoalDao {
-    @Insert
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insert(goal: Goal)
 
     @Query("SELECT * FROM goals WHERE userId = :userId")

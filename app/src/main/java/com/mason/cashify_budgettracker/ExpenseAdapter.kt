@@ -3,6 +3,7 @@ package com.mason.cashify_budgettracker
 import android.graphics.Color
 import android.util.Log
 import android.view.LayoutInflater
+import android.view.View
 import android.view.ViewGroup
 import androidx.recyclerview.widget.RecyclerView
 import com.bumptech.glide.Glide
@@ -34,24 +35,18 @@ class ExpenseAdapter(
             tvTime.text = "${expense.startTime} - ${expense.endTime}"
 
             // Load photo
-            ivPhoto.setImageDrawable(null) // Clear previous image
             if (expense.photoPath.isNotEmpty()) {
-                try {
-                    Glide.with(ivPhoto.context)
-                        .load(expense.photoPath)
-                        .error(R.drawable.ic_photo_placeholder)
-                        .into(ivPhoto)
-                    Log.d("ExpenseAdapter", "Loaded photo for expense ${expense.id}: ${expense.photoPath}")
-                    ivPhoto.isClickable = true
-                    ivPhoto.setOnClickListener { onPhotoClick(expense) }
-                } catch (e: Exception) {
-                    Log.e("ExpenseAdapter", "Error loading photo for expense ${expense.id}: $e")
-                    ivPhoto.setImageResource(R.drawable.ic_photo_placeholder
-                    )
-                    ivPhoto.isClickable = false
-                }
+                ivPhoto.visibility = View.VISIBLE
+                Glide.with(ivPhoto.context)
+                    .load(expense.photoPath)
+                    .error(R.drawable.ic_photo_placeholder)
+                    .into(ivPhoto)
+                ivPhoto.isClickable = true
+                ivPhoto.setOnClickListener { onPhotoClick(expense) }
+                Log.d("ExpenseAdapter", "Loaded photo for expense ${expense.id}: ${expense.photoPath}")
             } else {
-                ivPhoto.setImageResource(R.drawable.ic_photo_placeholder)
+                ivPhoto.setImageDrawable(null)
+                ivPhoto.visibility = View.GONE
                 ivPhoto.isClickable = false
                 Log.d("ExpenseAdapter", "No photo for expense ${expense.id}")
             }

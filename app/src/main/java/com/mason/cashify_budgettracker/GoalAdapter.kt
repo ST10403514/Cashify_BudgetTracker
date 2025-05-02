@@ -1,17 +1,18 @@
 package com.mason.cashify_budgettracker
 
 import android.view.LayoutInflater
+import android.view.View
 import android.view.ViewGroup
+import androidx.recyclerview.widget.DiffUtil
+import androidx.recyclerview.widget.ListAdapter
 import androidx.recyclerview.widget.RecyclerView
 import com.bumptech.glide.Glide
 import com.mason.cashify_budgettracker.databinding.ItemGoalBinding
 import java.text.DecimalFormat
+import java.text.SimpleDateFormat
+import java.util.*
 
-class GoalAdapter : RecyclerView.Adapter<GoalAdapter.GoalViewHolder>() {
-
-    private var goals: List<GoalItem> = emptyList()
-
-    inner class GoalViewHolder(val binding: ItemGoalBinding) : RecyclerView.ViewHolder(binding.root)
+class GoalAdapter : ListAdapter<GoalItem, GoalAdapter.GoalViewHolder>(GoalDiffCallback()) {
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): GoalViewHolder {
         val binding = ItemGoalBinding.inflate(LayoutInflater.from(parent.context), parent, false)
@@ -19,54 +20,63 @@ class GoalAdapter : RecyclerView.Adapter<GoalAdapter.GoalViewHolder>() {
     }
 
     override fun onBindViewHolder(holder: GoalViewHolder, position: Int) {
-        val goalItem = goals[position]
-        val goal = goalItem.goal
-        val totalSpent = goalItem.totalSpent
-        with(holder.binding) {
-            tvCategory.text = goal.category
-            tvDescription.text = goal.description.takeIf { it.isNotEmpty() } ?: "No description"
-            tvType.text = goal.type.replaceFirstChar { it.uppercase() }
-            tvMinMax.text = "Min: ${DecimalFormat("0.00").format(goal.minGoal)} / Max: ${DecimalFormat("0.00").format(goal.maxGoal)}"
+        holder.bind(getItem(position))
+    }
 
-            // Calculate progress
-            val progress = if (goal.maxGoal > 0) {
-                ((totalSpent / goal.maxGoal) * 100).coerceIn(0.0, 100.0).toInt()
-            } else {
-                0
-            }
-            progressBar.progress = progress
+    class GoalViewHolder(private val binding: ItemGoalBinding) : RecyclerView.ViewHolder(binding.root) {
+        private val decimalFormat = DecimalFormat("R#,##0.00")
+        private val monthFormat = SimpleDateFormat("MM/yyyy", Locale.getDefault())
+        private val dateFormat = SimpleDateFormat("dd/MM/yyyy", Locale.getDefault())
 
-            // Set amount progress (e.g., "1250.00/2500.00")
-            tvAmountProgress.text = "${DecimalFormat("0.00").format(totalSpent)}/${DecimalFormat("0.00").format(goal.maxGoal)}"
+        fun bind(goalItem: GoalItem) {
+            val goal = goalItem.goal
+            val totalSpent = goalItem.totalSpent
 
-            // Set status message
-            tvStatus.text = if (totalSpent <= goal.maxGoal) {
-                "You're within your budget"
-            } else {
-                "You've overspent"
-            }
+            binding.tvCategory.text = goal.category
+            binding.tvMonth.text = "Month: ${goal.month}"
+            binding.tvCreatedAt.text = "Created: ${dateFormat.format(Date(goal.createdAt))}"
+            binding.tvDescription.text = goal.description.takeIf { it.isNotEmpty() } ?: "No description"
+            binding.tvType.text = goal.type.replaceFirstChar { it.uppercase() }
+            binding.tvMinMax.text = "Min: ${decimalFormat.format(goal.minGoal)} | Max: ${decimalFormat.format(goal.maxGoal)}"
 
             // Load photo
-            ivPhoto.setImageDrawable(null)
             if (goal.photoPath.isNotEmpty()) {
-                try {
-                    Glide.with(ivPhoto.context)
-                        .load(goal.photoPath)
-                        .error(R.drawable.ic_photo_placeholder)
-                        .into(ivPhoto)
-                } catch (e: Exception) {
-                    ivPhoto.setImageResource(R.drawable.ic_photo_placeholder)
-                }
+                binding.ivPhoto.visibility = View.VISIBLE
+                Glide.with(binding.ivPhoto.context)
+                    .load(goal.photoPath)
+                    .error(R.drawable.ic_photo_placeholder)
+                    .into(binding.ivPhoto)
             } else {
-                ivPhoto.setImageResource(R.drawable.ic_photo_placeholder)
+                binding.ivPhoto.setImageDrawable(null)
+                binding.ivPhoto.visibility = View.GONE
+            }
+
+            val progress = when {
+                goal.maxGoal == 0.0 -> 0f
+                else -> {
+                    val amount = totalSpent.coerceAtMost(goal.maxGoal)
+                    (amount / goal.maxGoal * 100).toFloat()
+                }
+            }
+            binding.progressBar.progress = progress.toInt()
+            binding.tvAmountProgress.text = "Spent: ${decimalFormat.format(totalSpent)}"
+
+            binding.tvStatus.text = when {
+                goal.type == "expense" && totalSpent > goal.maxGoal -> "Over Budget"
+                goal.type == "expense" && totalSpent >= goal.minGoal -> "Within Budget"
+                goal.type == "income" && totalSpent >= goal.minGoal -> "Goal Met"
+                else -> "Below Goal"
             }
         }
     }
 
-    override fun getItemCount(): Int = goals.size
+    class GoalDiffCallback : DiffUtil.ItemCallback<GoalItem>() {
+        override fun areItemsTheSame(oldItem: GoalItem, newItem: GoalItem): Boolean {
+            return oldItem.goal.id == newItem.goal.id
+        }
 
-    fun submitList(newGoals: List<GoalItem>) {
-        goals = newGoals
-        notifyDataSetChanged()
+        override fun areContentsTheSame(oldItem: GoalItem, newItem: GoalItem): Boolean {
+            return oldItem == newItem
+        }
     }
 }

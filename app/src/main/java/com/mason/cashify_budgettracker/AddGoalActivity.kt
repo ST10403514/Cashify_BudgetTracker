@@ -15,6 +15,7 @@ import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.net.toUri
 import androidx.lifecycle.lifecycleScope
+import com.google.android.material.datepicker.MaterialDatePicker
 import com.google.android.material.textfield.MaterialAutoCompleteTextView
 import com.google.firebase.auth.FirebaseAuth
 import com.mason.cashify_budgettracker.data.AppDatabase
@@ -34,7 +35,7 @@ class AddGoalActivity : AppCompatActivity() {
     private lateinit var binding: ActivityAddGoalBinding
     private lateinit var auth: FirebaseAuth
     private lateinit var database: AppDatabase
-    private var photoPath: String? = null // Changed from photoUri to photoPath
+    private var photoPath: String? = null
     private val categories = mutableListOf<String>()
     private val defaultCategories = listOf("Food", "Transport", "Entertainment", "Bills", "Other")
 
@@ -51,15 +52,14 @@ class AddGoalActivity : AppCompatActivity() {
     private val galleryLauncher = registerForActivityResult(ActivityResultContracts.GetContent()) { uri: Uri? ->
         if (uri != null) {
             try {
-                // Copy the selected image to internal storage
                 val photoFile = createImageFile()
                 contentResolver.openInputStream(uri)?.use { input ->
                     FileOutputStream(photoFile).use { output ->
                         input.copyTo(output)
                     }
                 }
-                photoPath = photoFile.absolutePath // Store file path
-                binding.ivPhoto.setImageURI(photoFile.toUri()) // Use file path as Uri
+                photoPath = photoFile.absolutePath
+                binding.ivPhoto.setImageURI(photoFile.toUri())
                 binding.ivPhoto.visibility = View.VISIBLE
                 Log.d("AddGoalActivity", "Photo selected from gallery: $photoPath")
             } catch (e: Exception) {
@@ -121,11 +121,15 @@ class AddGoalActivity : AppCompatActivity() {
             }
         }
 
-        // Setup category dropdown
         val categoryAdapter = ArrayAdapter(this, android.R.layout.simple_dropdown_item_1line, categories)
         (binding.categoryInput as MaterialAutoCompleteTextView).setAdapter(categoryAdapter)
         binding.categoryInput.setOnClickListener {
             binding.categoryInput.showDropDown()
+        }
+
+        binding.monthInput.setOnClickListener {
+            Log.d("AddGoalActivity", "Month input clicked")
+            showMonthPicker()
         }
 
         binding.btnCapturePhoto.setOnClickListener {
@@ -171,6 +175,33 @@ class AddGoalActivity : AppCompatActivity() {
         super.onSaveInstanceState(outState)
         outState.putString("photoPath", photoPath)
         Log.d("AddGoalActivity", "onSaveInstanceState: Saved photoPath")
+    }
+
+    private fun showMonthPicker() {
+        val datePicker = MaterialDatePicker.Builder.datePicker()
+            .setTitleText("Select Goal Month")
+            .setSelection(MaterialDatePicker.todayInUtcMilliseconds())
+            .build()
+
+        datePicker.addOnPositiveButtonClickListener { selection ->
+            try {
+                val calendar = Calendar.getInstance()
+                calendar.timeInMillis = selection
+                val sdf = SimpleDateFormat("MM/yyyy", Locale.getDefault())
+                val monthYear = sdf.format(calendar.time)
+                binding.monthInput.setText(monthYear)
+                Log.d("AddGoalActivity", "Month selected: $monthYear")
+            } catch (e: Exception) {
+                Log.e("AddGoalActivity", "Error selecting month: $e")
+                Toast.makeText(this, "Error selecting month", Toast.LENGTH_SHORT).show()
+            }
+        }
+
+        datePicker.addOnNegativeButtonClickListener {
+            Log.d("AddGoalActivity", "Month picker cancelled")
+        }
+
+        datePicker.show(supportFragmentManager, "MONTH_PICKER")
     }
 
     private fun checkPermissionsAndSelectPhoto() {
@@ -280,16 +311,16 @@ class AddGoalActivity : AppCompatActivity() {
     }
 
     private fun saveGoal() {
+        val month = binding.monthInput.text.toString().trim()
         val category = binding.categoryInput.text.toString().trim()
         val type = if (binding.radioIncome.isChecked) "income" else "expense"
         val description = binding.descriptionInput.text.toString().trim()
         val minGoalStr = binding.minGoalInput.text.toString().trim()
         val maxGoalStr = binding.maxGoalInput.text.toString().trim()
-        val month = SimpleDateFormat("MM/yyyy", Locale.getDefault()).format(Date())
         val userId = auth.currentUser?.uid ?: return
 
-        if (category.isEmpty() || minGoalStr.isEmpty() || maxGoalStr.isEmpty()) {
-            Toast.makeText(this, "Please fill category, min goal, and max goal", Toast.LENGTH_SHORT).show()
+        if (month.isEmpty() || category.isEmpty() || minGoalStr.isEmpty() || maxGoalStr.isEmpty()) {
+            Toast.makeText(this, "Please fill month, category, min goal, and max goal", Toast.LENGTH_SHORT).show()
             Log.w("AddGoalActivity", "Validation failed: Empty fields")
             return
         }
@@ -323,9 +354,10 @@ class AddGoalActivity : AppCompatActivity() {
                     categoryId = categoryId,
                     type = type,
                     description = description,
-                    photoPath = photoPath ?: "", // Use file path
+                    photoPath = photoPath ?: "",
                     minGoal = minGoal,
-                    maxGoal = maxGoal
+                    maxGoal = maxGoal,
+                    createdAt = System.currentTimeMillis()
                 )
                 withContext(Dispatchers.IO) {
                     database.goalDao().insert(goal)
@@ -345,7 +377,7 @@ class AddGoalActivity : AppCompatActivity() {
         val timeStamp = SimpleDateFormat("yyyyMMdd_HHmmss", Locale.getDefault()).format(Date())
         val storageDir = getExternalFilesDir("photos")
         if (storageDir != null && !storageDir.exists()) {
-            storageDir.mkdirs() // Ensure directory exists
+            storageDir.mkdirs()
         }
         return File.createTempFile("JPEG_${timeStamp}_", ".jpg", storageDir)
     }
