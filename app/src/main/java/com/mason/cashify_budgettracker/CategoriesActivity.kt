@@ -72,13 +72,19 @@ class CategoriesActivity : AppCompatActivity() {
             try {
                 val intent = Intent(this@CategoriesActivity, CategoryExpensesActivity::class.java)
                 intent.putExtra("category", categoryTotal.category)
+
+                // Pass selected date range if present
+                selectedStartDate?.let { intent.putExtra("startDate", it) }
+                selectedEndDate?.let { intent.putExtra("endDate", it) }
+
                 startActivity(intent)
-                Log.d("CategoriesActivity", "Navigating to CategoryExpensesActivity for ${categoryTotal.category}")
+                Log.d("CategoriesActivity", "Navigating to CategoryExpensesActivity for ${categoryTotal.category} with dates: $selectedStartDate - $selectedEndDate")
             } catch (e: Exception) {
                 Log.e("CategoriesActivity", "Error navigating to CategoryExpensesActivity: $e")
                 Toast.makeText(this@CategoriesActivity, "Error opening category", Toast.LENGTH_SHORT).show()
             }
         }
+
         binding.rvCategories.apply {
             layoutManager = LinearLayoutManager(this@CategoriesActivity)
             adapter = categoryAdapter
@@ -129,6 +135,7 @@ class CategoriesActivity : AppCompatActivity() {
                     Log.d("CategoriesActivity", "All chip selected")
                     selectedStartDate = null
                     selectedEndDate = null
+                    binding.chipDay.text = "Pick Date" // Reset chip text when 'All' is selected
                     loadCategories()
                 }
                 R.id.chipDay -> {
@@ -139,6 +146,7 @@ class CategoriesActivity : AppCompatActivity() {
         }
     }
 
+
     private fun showDateRangePicker() {
         val dateRangePicker = MaterialDatePicker.Builder.dateRangePicker()
             .setTitleText("Select Date Range")
@@ -148,7 +156,13 @@ class CategoriesActivity : AppCompatActivity() {
             try {
                 selectedStartDate = dateRange.first
                 selectedEndDate = dateRange.second + TimeUnit.DAYS.toMillis(1) - 1 // Include end of day
-                Log.d("CategoriesActivity", "Date range selected: $selectedStartDate to $selectedEndDate")
+
+                val dateFormat = java.text.SimpleDateFormat("dd/MM/yyyy", java.util.Locale.getDefault())
+                val startDateStr = dateFormat.format(java.util.Date(selectedStartDate!!))
+                val endDateStr = dateFormat.format(java.util.Date(selectedEndDate!!))
+                binding.chipDay.text = "$startDateStr - $endDateStr"
+
+                Log.d("CategoriesActivity", "Date range selected: $startDateStr to $endDateStr")
                 loadCategories()
                 Toast.makeText(this, "Date range applied", Toast.LENGTH_SHORT).show()
             } catch (e: Exception) {
@@ -156,6 +170,7 @@ class CategoriesActivity : AppCompatActivity() {
                 Toast.makeText(this, "Error applying date range", Toast.LENGTH_SHORT).show()
             }
         }
+
 
         dateRangePicker.addOnNegativeButtonClickListener {
             Log.d("CategoriesActivity", "Date range picker cancelled")
@@ -184,7 +199,7 @@ class CategoriesActivity : AppCompatActivity() {
                 }
                 categoryAdapter.submitList(categoryTotals)
                 binding.tvTitle.text = if (selectedStartDate != null) {
-                    "Categories (Filtered)"
+                    "Categories"
                 } else {
                     "Categories"
                 }

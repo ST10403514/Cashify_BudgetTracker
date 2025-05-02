@@ -36,36 +36,13 @@
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@id/tvTitle">
 
-        <com.google.android.material.chip.Chip
-            android:id="@+id/chipAll"
-            style="@style/Widget.Material3.Chip.Filter"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:minWidth="80dp"
-            android:text="All"
-            android:textAlignment="center"
-            app:checkedIconEnabled="false"
-            app:chipBackgroundColor="@color/chip_background"
-            app:chipMinTouchTargetSize="48dp" />
-
-        <com.google.android.material.chip.Chip
-            android:id="@+id/chipDay"
-            style="@style/Widget.Material3.Chip.Filter"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:minWidth="80dp"
-            android:text="Pick Date"
-            android:textAlignment="center"
-            app:checkedIconEnabled="false"
-            app:chipBackgroundColor="@color/chip_background"
-            app:chipMinTouchTargetSize="48dp" />
-
     </com.google.android.material.chip.ChipGroup>
 
     <androidx.recyclerview.widget.RecyclerView
         android:id="@+id/rvExpenses"
         android:layout_width="0dp"
         android:layout_height="0dp"
+        android:layout_marginTop="40dp"
         android:background="@android:color/white"
         app:layout_constraintBottom_toTopOf="@id/bottomNav"
         app:layout_constraintEnd_toEndOf="parent"
