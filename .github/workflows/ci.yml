@@ -1,3 +1,4 @@
+
   name: Cashify CI
 
   on:
@@ -34,7 +35,7 @@
 
         - name: Check critical files
           run: |
-            for file in README.md app/build.gradle; do
+            for file in README.md app/build.gradle.kts; do
               if [ -f "$file" ]; then
                 echo "$file exists ✅"
               else
