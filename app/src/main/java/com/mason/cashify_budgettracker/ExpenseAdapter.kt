@@ -9,7 +9,7 @@ import androidx.recyclerview.widget.RecyclerView
 import com.bumptech.glide.Glide
 import com.mason.cashify_budgettracker.data.Expense
 import com.mason.cashify_budgettracker.databinding.ItemExpenseBinding
-import java.text.DecimalFormat
+
 
 class ExpenseAdapter(
     private var expenses: MutableList<Expense>,
@@ -26,7 +26,7 @@ class ExpenseAdapter(
     override fun onBindViewHolder(holder: ExpenseViewHolder, position: Int) {
         val expense = expenses[position]
         with(holder.binding) {
-            tvAmount.text = DecimalFormat("0.00").format(expense.amount)
+            tvAmount.text = CurrencyUtils.formatCurrency(expense.amount, expense.type == "expense")
             tvAmount.setTextColor(if (expense.type == "income") Color.GREEN else Color.RED)
             tvCategory.text = expense.category
             tvCategory.setTypeface(null, android.graphics.Typeface.BOLD)
