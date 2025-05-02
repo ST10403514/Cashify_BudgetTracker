@@ -1,6 +1,8 @@
 # Cashify
 **Save Smart, Spend Wise**
 
+![Cashify Logo](assets/Cashify_Logo.gif)
+
 ## GitHub Link
 [https://github.com/ST10403514/Cashify_BudgetTracker](https://github.com/ST10403514/Cashify_BudgetTracker)
 
