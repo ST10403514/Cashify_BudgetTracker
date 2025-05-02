@@ -7,6 +7,7 @@ import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.LinearLayoutManager
+import com.google.android.material.datepicker.MaterialDatePicker
 import com.google.firebase.auth.FirebaseAuth
 import com.mason.cashify_budgettracker.data.AppDatabase
 import com.mason.cashify_budgettracker.data.CategoryTotal
@@ -14,6 +15,7 @@ import com.mason.cashify_budgettracker.databinding.ActivityCategoriesBinding
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import java.util.concurrent.TimeUnit
 
 class CategoriesActivity : AppCompatActivity() {
 
@@ -21,6 +23,8 @@ class CategoriesActivity : AppCompatActivity() {
     private lateinit var auth: FirebaseAuth
     private var database: AppDatabase? = null
     private lateinit var categoryAdapter: CategoryAdapter
+    private var selectedStartDate: Long? = null
+    private var selectedEndDate: Long? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -45,6 +49,8 @@ class CategoriesActivity : AppCompatActivity() {
 
         setupRecyclerView()
         setupBottomNavigation()
+
+        setupChipGroup()
 
         lifecycleScope.launch {
             try {
@@ -113,6 +119,52 @@ class CategoriesActivity : AppCompatActivity() {
         }
     }
 
+
+
+
+    private fun setupChipGroup() {
+        binding.chipGroup.setOnCheckedChangeListener { _, checkedId ->
+            when (checkedId) {
+                R.id.chipAll -> {
+                    Log.d("CategoriesActivity", "All chip selected")
+                    selectedStartDate = null
+                    selectedEndDate = null
+                    loadCategories()
+                }
+                R.id.chipDay -> {
+                    Log.d("CategoriesActivity", "Pick Date chip selected")
+                    showDateRangePicker()
+                }
+            }
+        }
+    }
+
+    private fun showDateRangePicker() {
+        val dateRangePicker = MaterialDatePicker.Builder.dateRangePicker()
+            .setTitleText("Select Date Range")
+            .build()
+
+        dateRangePicker.addOnPositiveButtonClickListener { dateRange ->
+            try {
+                selectedStartDate = dateRange.first
+                selectedEndDate = dateRange.second + TimeUnit.DAYS.toMillis(1) - 1 // Include end of day
+                Log.d("CategoriesActivity", "Date range selected: $selectedStartDate to $selectedEndDate")
+                loadCategories()
+                Toast.makeText(this, "Date range applied", Toast.LENGTH_SHORT).show()
+            } catch (e: Exception) {
+                Log.e("CategoriesActivity", "Error selecting date range: $e")
+                Toast.makeText(this, "Error applying date range", Toast.LENGTH_SHORT).show()
+            }
+        }
+
+        dateRangePicker.addOnNegativeButtonClickListener {
+            Log.d("CategoriesActivity", "Date range picker cancelled")
+            binding.chipGroup.check(R.id.chipAll) // Revert to All
+        }
+
+        dateRangePicker.show(supportFragmentManager, "DATE_RANGE_PICKER")
+    }
+
     private fun loadCategories() {
         lifecycleScope.launch {
             val userId = auth.currentUser?.uid ?: return@launch
@@ -124,10 +176,18 @@ class CategoriesActivity : AppCompatActivity() {
             }
             try {
                 val categoryTotals = withContext(Dispatchers.IO) {
-                    db.expenseDao().getCategoryTotals(userId)
+                    if (selectedStartDate != null && selectedEndDate != null) {
+                        db.expenseDao().getCategoryTotalsByDateRange(userId, selectedStartDate!!, selectedEndDate!!)
+                    } else {
+                        db.expenseDao().getCategoryTotals(userId)
+                    }
                 }
                 categoryAdapter.submitList(categoryTotals)
-                binding.tvTitle.text = "Categories"
+                binding.tvTitle.text = if (selectedStartDate != null) {
+                    "Categories (Filtered)"
+                } else {
+                    "Categories"
+                }
                 Log.d("CategoriesActivity", "Categories loaded: ${categoryTotals.map { it.category to it.total }}")
                 if (categoryTotals.isEmpty()) {
                     Toast.makeText(this@CategoriesActivity, "No categories found", Toast.LENGTH_SHORT).show()

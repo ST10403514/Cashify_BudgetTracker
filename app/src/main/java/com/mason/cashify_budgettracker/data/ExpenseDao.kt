@@ -26,8 +26,21 @@ interface ExpenseDao {
     @Query("SELECT * FROM expenses WHERE userId = :userId AND category = :category AND timestamp BETWEEN :startDate AND :endDate")
     suspend fun getExpensesByCategoryAndDateRange(userId: String, category: String, startDate: Long, endDate: Long): List<Expense>
 
-    @Query("SELECT category, SUM(CASE WHEN type = 'expense' THEN amount ELSE -amount END) as total FROM expenses WHERE userId = :userId GROUP BY category")
+    @Query("""
+        SELECT category, SUM(CASE WHEN type = 'expense' THEN -amount ELSE amount END) as total
+        FROM expenses
+        WHERE userId = :userId
+        GROUP BY category
+    """)
     suspend fun getCategoryTotals(userId: String): List<CategoryTotal>
+
+    @Query("""
+        SELECT category, SUM(CASE WHEN type = 'expense' THEN -amount ELSE amount END) as total
+        FROM expenses
+        WHERE userId = :userId AND timestamp BETWEEN :startDate AND :endDate
+        GROUP BY category
+    """)
+    suspend fun getCategoryTotalsByDateRange(userId: String, startDate: Long, endDate: Long): List<CategoryTotal>
 
     @Query("SELECT DISTINCT category FROM expenses WHERE userId = :userId")
     suspend fun getDistinctCategories(userId: String): List<String>

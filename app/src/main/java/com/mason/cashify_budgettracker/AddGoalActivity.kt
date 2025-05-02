@@ -4,8 +4,8 @@ import android.Manifest
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.net.Uri
+import android.os.Build
 import android.os.Bundle
-import android.provider.MediaStore
 import android.util.Log
 import android.view.View
 import android.widget.ArrayAdapter
@@ -13,7 +13,7 @@ import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
-import androidx.core.content.FileProvider
+import androidx.core.net.toUri
 import androidx.lifecycle.lifecycleScope
 import com.google.android.material.textfield.MaterialAutoCompleteTextView
 import com.google.firebase.auth.FirebaseAuth
@@ -25,6 +25,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.io.File
+import java.io.FileOutputStream
 import java.text.SimpleDateFormat
 import java.util.*
 
@@ -33,27 +34,41 @@ class AddGoalActivity : AppCompatActivity() {
     private lateinit var binding: ActivityAddGoalBinding
     private lateinit var auth: FirebaseAuth
     private lateinit var database: AppDatabase
-    private var photoUri: Uri? = null
+    private var photoPath: String? = null // Changed from photoUri to photoPath
     private val categories = mutableListOf<String>()
     private val defaultCategories = listOf("Food", "Transport", "Entertainment", "Bills", "Other")
 
     private val permissionLauncher = registerForActivityResult(ActivityResultContracts.RequestPermission()) { isGranted ->
         if (isGranted) {
-            Log.d("AddGoalActivity", "Camera permission granted, launching camera")
-            launchCamera()
+            Log.d("AddGoalActivity", "Storage permission granted, launching gallery")
+            launchGallery()
         } else {
-            Log.w("AddGoalActivity", "Camera permission denied")
-            Toast.makeText(this, "Camera permission is required to take photos", Toast.LENGTH_LONG).show()
+            Log.w("AddGoalActivity", "Storage permission denied")
+            Toast.makeText(this, "Storage permission is required to select photos", Toast.LENGTH_LONG).show()
         }
     }
 
-    private val cameraLauncher = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
-        Log.d("AddGoalActivity", "Camera result: resultCode=${result.resultCode}")
-        if (result.resultCode == RESULT_OK) {
-            binding.ivPhoto.setImageURI(photoUri)
-            binding.ivPhoto.visibility = View.VISIBLE
+    private val galleryLauncher = registerForActivityResult(ActivityResultContracts.GetContent()) { uri: Uri? ->
+        if (uri != null) {
+            try {
+                // Copy the selected image to internal storage
+                val photoFile = createImageFile()
+                contentResolver.openInputStream(uri)?.use { input ->
+                    FileOutputStream(photoFile).use { output ->
+                        input.copyTo(output)
+                    }
+                }
+                photoPath = photoFile.absolutePath // Store file path
+                binding.ivPhoto.setImageURI(photoFile.toUri()) // Use file path as Uri
+                binding.ivPhoto.visibility = View.VISIBLE
+                Log.d("AddGoalActivity", "Photo selected from gallery: $photoPath")
+            } catch (e: Exception) {
+                Log.e("AddGoalActivity", "Error processing gallery image: $e")
+                Toast.makeText(this, "Error selecting photo", Toast.LENGTH_SHORT).show()
+            }
         } else {
-            Toast.makeText(this, "Photo capture cancelled", Toast.LENGTH_SHORT).show()
+            Log.d("AddGoalActivity", "Gallery selection cancelled")
+            Toast.makeText(this, "Photo selection cancelled", Toast.LENGTH_SHORT).show()
         }
     }
 
@@ -78,12 +93,17 @@ class AddGoalActivity : AppCompatActivity() {
             return
         }
 
+        binding.btnBack.setOnClickListener {
+            Log.d("AddGoalActivity", "Back button clicked")
+            finish()
+        }
+
         if (savedInstanceState != null) {
-            photoUri = savedInstanceState.getParcelable("photoUri")
-            if (photoUri != null) {
-                binding.ivPhoto.setImageURI(photoUri)
+            photoPath = savedInstanceState.getString("photoPath")
+            if (photoPath != null) {
+                binding.ivPhoto.setImageURI(File(photoPath!!).toUri())
                 binding.ivPhoto.visibility = View.VISIBLE
-                Log.d("AddGoalActivity", "Restored photoUri: $photoUri")
+                Log.d("AddGoalActivity", "Restored photoPath: $photoPath")
             }
         }
 
@@ -109,8 +129,8 @@ class AddGoalActivity : AppCompatActivity() {
         }
 
         binding.btnCapturePhoto.setOnClickListener {
-            Log.d("AddGoalActivity", "Capture Photo clicked")
-            checkPermissionsAndCapturePhoto()
+            Log.d("AddGoalActivity", "Add Photo clicked")
+            checkPermissionsAndSelectPhoto()
         }
 
         binding.addCategoryText.setOnClickListener {
@@ -132,8 +152,8 @@ class AddGoalActivity : AppCompatActivity() {
                     true
                 }
                 R.id.nav_categories -> {
-                    Log.d("AddGoalActivity", "Navigating to AddExpenseActivity")
-                    startActivity(Intent(this, AddExpenseActivity::class.java))
+                    Log.d("AddGoalActivity", "Navigating to CategoriesActivity")
+                    startActivity(Intent(this, CategoriesActivity::class.java))
                     finish()
                     true
                 }
@@ -149,58 +169,55 @@ class AddGoalActivity : AppCompatActivity() {
 
     override fun onSaveInstanceState(outState: Bundle) {
         super.onSaveInstanceState(outState)
-        outState.putParcelable("photoUri", photoUri)
-        Log.d("AddGoalActivity", "onSaveInstanceState: Saved photoUri")
+        outState.putString("photoPath", photoPath)
+        Log.d("AddGoalActivity", "onSaveInstanceState: Saved photoPath")
     }
 
-    private fun checkPermissionsAndCapturePhoto() {
+    private fun checkPermissionsAndSelectPhoto() {
+        val permission = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            Manifest.permission.READ_MEDIA_IMAGES
+        } else {
+            Manifest.permission.READ_EXTERNAL_STORAGE
+        }
         when {
-            checkSelfPermission(Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED -> {
-                Log.d("AddGoalActivity", "Camera permission already granted, launching camera")
-                launchCamera()
+            checkSelfPermission(permission) == PackageManager.PERMISSION_GRANTED -> {
+                Log.d("AddGoalActivity", "Storage permission already granted, launching gallery")
+                launchGallery()
             }
-            shouldShowRequestPermissionRationale(Manifest.permission.CAMERA) -> {
-                Log.d("AddGoalActivity", "Showing permission rationale for camera")
+            shouldShowRequestPermissionRationale(permission) -> {
+                Log.d("AddGoalActivity", "Showing permission rationale for storage")
                 showPermissionRationale()
             }
             else -> {
-                Log.d("AddGoalActivity", "Requesting camera permission")
-                permissionLauncher.launch(Manifest.permission.CAMERA)
+                Log.d("AddGoalActivity", "Requesting storage permission")
+                permissionLauncher.launch(permission)
             }
         }
     }
 
     private fun showPermissionRationale() {
         AlertDialog.Builder(this)
-            .setTitle("Camera Permission Required")
-            .setMessage("This app needs camera access to take photos for your goals. Please grant the permission.")
+            .setTitle("Storage Permission Required")
+            .setMessage("This app needs storage access to select photos for your goals. Please grant the permission.")
             .setPositiveButton("OK") { _, _ ->
-                Log.d("AddGoalActivity", "User acknowledged rationale, requesting camera permission")
-                permissionLauncher.launch(Manifest.permission.CAMERA)
+                Log.d("AddGoalActivity", "User acknowledged rationale, requesting storage permission")
+                val permission = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                    Manifest.permission.READ_MEDIA_IMAGES
+                } else {
+                    Manifest.permission.READ_EXTERNAL_STORAGE
+                }
+                permissionLauncher.launch(permission)
             }
             .setNegativeButton("Cancel") { _, _ ->
                 Log.w("AddGoalActivity", "User cancelled permission rationale")
-                Toast.makeText(this, "Camera permission is required to take photos", Toast.LENGTH_LONG).show()
+                Toast.makeText(this, "Storage permission is required to select photos", Toast.LENGTH_LONG).show()
             }
             .show()
     }
 
-    private fun launchCamera() {
-        try {
-            val photoFile = createImageFile()
-            photoUri = FileProvider.getUriForFile(
-                this,
-                "com.mason.cashify_budgettracker.fileprovider",
-                photoFile
-            )
-            val intent = Intent(MediaStore.ACTION_IMAGE_CAPTURE)
-            intent.putExtra(MediaStore.EXTRA_OUTPUT, photoUri)
-            cameraLauncher.launch(intent)
-            Log.d("AddGoalActivity", "Camera launched with photoUri: $photoUri")
-        } catch (e: Exception) {
-            Log.e("AddGoalActivity", "Error launching camera: $e")
-            Toast.makeText(this, "Error accessing camera", Toast.LENGTH_SHORT).show()
-        }
+    private fun launchGallery() {
+        galleryLauncher.launch("image/*")
+        Log.d("AddGoalActivity", "Gallery launched")
     }
 
     private fun loadCategories() {
@@ -306,7 +323,7 @@ class AddGoalActivity : AppCompatActivity() {
                     categoryId = categoryId,
                     type = type,
                     description = description,
-                    photoPath = photoUri?.toString() ?: "",
+                    photoPath = photoPath ?: "", // Use file path
                     minGoal = minGoal,
                     maxGoal = maxGoal
                 )
@@ -327,6 +344,9 @@ class AddGoalActivity : AppCompatActivity() {
     private fun createImageFile(): File {
         val timeStamp = SimpleDateFormat("yyyyMMdd_HHmmss", Locale.getDefault()).format(Date())
         val storageDir = getExternalFilesDir("photos")
+        if (storageDir != null && !storageDir.exists()) {
+            storageDir.mkdirs() // Ensure directory exists
+        }
         return File.createTempFile("JPEG_${timeStamp}_", ".jpg", storageDir)
     }
 

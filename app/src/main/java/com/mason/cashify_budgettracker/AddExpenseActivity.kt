@@ -94,6 +94,11 @@ class AddExpenseActivity : AppCompatActivity() {
             return
         }
 
+        binding.btnBack.setOnClickListener {
+            Log.d("AddExpenseActivity", "Back button clicked")
+            finish()
+        }
+
         if (savedInstanceState != null) {
             photoUri = savedInstanceState.getParcelable("photoUri")
             if (photoUri != null) {

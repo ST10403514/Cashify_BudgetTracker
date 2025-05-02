@@ -54,6 +54,11 @@ class CategoryExpensesActivity : AppCompatActivity() {
             return
         }
 
+        binding.btnBack.setOnClickListener {
+            Log.d("CategoryExpensesActivity", "Back button clicked")
+            finish()
+        }
+
         category = intent.getStringExtra("category")?.trim() ?: ""
         if (category.isEmpty()) {
             Log.e("CategoryExpensesActivity", "No category provided in intent")
@@ -61,7 +66,7 @@ class CategoryExpensesActivity : AppCompatActivity() {
             finish()
             return
         }
-        binding.tvTitle.text = "$category Expenses"
+        binding.tvTitle.text = "$category Entries"
         Log.d("CategoryExpensesActivity", "Category set: $category")
 
         setupRecyclerView()

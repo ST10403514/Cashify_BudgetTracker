@@ -68,13 +68,7 @@ class GoalsActivity : AppCompatActivity() {
             startActivity(Intent(this, AddGoalActivity::class.java))
         }
 
-        binding.btnLogout.setOnClickListener {
-            Log.d("GoalsActivity", "Logout clicked")
-            auth.signOut()
-            Toast.makeText(this, "Logged out successfully", Toast.LENGTH_SHORT).show()
-            startActivity(Intent(this, AuthActivity::class.java))
-            finish()
-        }
+
 
         binding.bottomNav.setOnItemSelectedListener { item ->
             when (item.itemId) {

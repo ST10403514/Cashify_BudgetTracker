@@ -14,6 +14,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
+//Activity responsible for handling user authentication (Login/Signup)
 class AuthActivity : AppCompatActivity() {
 
     private lateinit var binding: ActivityAuthBinding
@@ -25,14 +26,17 @@ class AuthActivity : AppCompatActivity() {
         binding = ActivityAuthBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
+        //Initialize Firebase Auth instance
         auth = FirebaseAuth.getInstance()
+
+        //Initialize Room database
         lifecycleScope.launch {
             database = withContext(Dispatchers.IO) {
                 AppDatabase.getDatabase(this@AuthActivity)
             }
         }
 
-        // Toggle between login and signup
+        //Toggle between login and signup UI
         binding.toggleButton.setOnClickListener {
             if (binding.loginLayout.visibility == android.view.View.VISIBLE) {
                 binding.loginLayout.visibility = android.view.View.GONE
@@ -45,7 +49,7 @@ class AuthActivity : AppCompatActivity() {
             }
         }
 
-        // Login button
+        //Handle login button click
         binding.btnLogin.setOnClickListener {
             val username = binding.loginUsername.text.toString().trim()
             val password = binding.loginPassword.text.toString().trim()
@@ -56,7 +60,7 @@ class AuthActivity : AppCompatActivity() {
             loginUser(username, password)
         }
 
-        // Signup button
+        //Handle signup button click
         binding.btnSignup.setOnClickListener {
             val username = binding.signupUsername.text.toString().trim()
             val email = binding.signupEmail.text.toString().trim()
@@ -69,10 +73,12 @@ class AuthActivity : AppCompatActivity() {
         }
     }
 
+    //Log in the user using username and password
     private fun loginUser(username: String, password: String) {
         Log.d("AuthActivity", "Attempting login with username: $username")
         lifecycleScope.launch {
             try {
+                //Get user from local Room database
                 val user = withContext(Dispatchers.IO) {
                     database.userDao().getUserByUsername(username)
                 }
@@ -81,6 +87,8 @@ class AuthActivity : AppCompatActivity() {
                     Log.e("AuthActivity", "No user found for username: $username")
                     return@launch
                 }
+
+                //Sign in to Firebase using the retrieved email
                 auth.signInWithEmailAndPassword(user.email, password)
                     .addOnCompleteListener(this@AuthActivity) { task ->
                         if (task.isSuccessful) {
@@ -105,41 +113,60 @@ class AuthActivity : AppCompatActivity() {
         }
     }
 
+    //Register a new user in Firebase and store the user in the local database
     private fun signupUser(email: String, password: String, username: String) {
         Log.d("AuthActivity", "Attempting signup with email: $email, username: $username")
-        auth.createUserWithEmailAndPassword(email, password)
-            .addOnCompleteListener(this) { task ->
-                if (task.isSuccessful) {
-                    val userId = auth.currentUser?.uid ?: run {
-                        Toast.makeText(this@AuthActivity, "Failed to get user ID", Toast.LENGTH_SHORT).show()
-                        Log.e("AuthActivity", "No user ID after signup")
-                        return@addOnCompleteListener
-                    }
-                    lifecycleScope.launch {
-                        try {
-                            val newUser = User(id = userId, username = username, email = email)
-                            withContext(Dispatchers.IO) {
-                                database.userDao().insert(newUser)
-                            }
-                            Log.d("AuthActivity", "User signed up and saved to Room: $username, id: $userId")
-                            Toast.makeText(this@AuthActivity, "Signup successful, please login", Toast.LENGTH_SHORT).show()
-                            // Switch to login layout
-                            binding.loginLayout.visibility = android.view.View.VISIBLE
-                            binding.signupLayout.visibility = android.view.View.GONE
-                            binding.toggleButton.text = "Switch to Signup"
-                            binding.loginUsername.setText(username) // Prefill username
-                            binding.loginPassword.text?.clear() // Clear password
-                            auth.signOut() // Ensure user is signed out
-                        } catch (e: Exception) {
-                            Toast.makeText(this@AuthActivity, "Error saving user data", Toast.LENGTH_SHORT).show()
-                            Log.e("AuthActivity", "Error saving user to Room: $username", e)
-                            auth.signOut()
-                        }
-                    }
-                } else {
-                    Toast.makeText(this@AuthActivity, "Signup failed: ${task.exception?.message}", Toast.LENGTH_SHORT).show()
-                    Log.e("AuthActivity", "Signup failed", task.exception)
-                }
+
+        lifecycleScope.launch {
+            //Check if username already exists in local DB
+            val existingUser = withContext(Dispatchers.IO) {
+                database.userDao().getUserByUsername(username)
             }
+            if (existingUser != null) {
+                Toast.makeText(this@AuthActivity, "Username already taken", Toast.LENGTH_SHORT).show()
+                Log.w("AuthActivity", "Signup failed: username already exists: $username")
+                return@launch
+            }
+
+            //Create Firebase account
+            auth.createUserWithEmailAndPassword(email, password)
+                .addOnCompleteListener(this@AuthActivity) { task ->
+                    if (task.isSuccessful) {
+                        val userId = auth.currentUser?.uid ?: run {
+                            Toast.makeText(this@AuthActivity, "Failed to get user ID", Toast.LENGTH_SHORT).show()
+                            Log.e("AuthActivity", "No user ID after signup")
+                            return@addOnCompleteListener
+                        }
+
+                        //Save new user into local Room database
+                        lifecycleScope.launch {
+                            try {
+                                val newUser = User(id = userId, username = username, email = email)
+                                withContext(Dispatchers.IO) {
+                                    database.userDao().insert(newUser)
+                                }
+                                Log.d("AuthActivity", "User signed up and saved to Room: $username, id: $userId")
+                                Toast.makeText(this@AuthActivity, "Signup successful, please login", Toast.LENGTH_SHORT).show()
+
+                                //Switch to login view and pre-fill username
+                                binding.loginLayout.visibility = android.view.View.VISIBLE
+                                binding.signupLayout.visibility = android.view.View.GONE
+                                binding.toggleButton.text = "Switch to Signup"
+                                binding.loginUsername.setText(username)
+                                binding.loginPassword.text?.clear()
+                                auth.signOut()
+                            } catch (e: Exception) {
+                                Toast.makeText(this@AuthActivity, "Error saving user data", Toast.LENGTH_SHORT).show()
+                                Log.e("AuthActivity", "Error saving user to Room: $username", e)
+                                auth.signOut()
+                            }
+                        }
+                    } else {
+                        Toast.makeText(this@AuthActivity, "Signup failed: ${task.exception?.message}", Toast.LENGTH_SHORT).show()
+                        Log.e("AuthActivity", "Signup failed", task.exception)
+                    }
+                }
+        }
     }
+
 }
