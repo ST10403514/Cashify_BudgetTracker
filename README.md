@@ -7,7 +7,7 @@
 [https://github.com/ST10403514/Cashify_BudgetTracker](https://github.com/ST10403514/Cashify_BudgetTracker)
 
 ## Demonstration Video
-(https://youtu.be/cs7XJiEM3zw) 
+[https://youtu.be/cs7XJiEM3zw](https://youtu.be/cs7XJiEM3zw)
 
 ## Team Information
 **Members**:
