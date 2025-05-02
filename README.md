@@ -9,7 +9,7 @@
 
 ## Team Information
 **Members**:
-- Ibrahim Ghogwala (ST10286968)
+- Ibrahim Ghogawala (ST10286968)
 - Matthew Mason (ST10403514)
 - Tiffany Mather (ST10249863)
 
@@ -218,4 +218,4 @@ Cashify is built for reliability, security, and responsiveness, making it ideal 
 
 ## License
 [MIT License](LICENSE)  
-Copyright © 2025 Ibrahim Ghogwala, Matthew Mason, Tiffany Mather
+Copyright © 2025 Ibrahim Ghogawala, Matthew Mason, Tiffany Mather
