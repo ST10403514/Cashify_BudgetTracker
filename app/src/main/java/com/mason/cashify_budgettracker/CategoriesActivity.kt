@@ -1,3 +1,4 @@
+
 package com.mason.cashify_budgettracker
 
 import android.content.Intent
@@ -9,8 +10,8 @@ import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.google.android.material.datepicker.MaterialDatePicker
 import com.google.firebase.auth.FirebaseAuth
-import com.mason.cashify_budgettracker.data.AppDatabase
 import com.mason.cashify_budgettracker.data.CategoryTotal
+import com.mason.cashify_budgettracker.data.ExpenseRepository
 import com.mason.cashify_budgettracker.databinding.ActivityCategoriesBinding
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -21,7 +22,6 @@ class CategoriesActivity : AppCompatActivity() {
 
     private lateinit var binding: ActivityCategoriesBinding
     private lateinit var auth: FirebaseAuth
-    private var database: AppDatabase? = null
     private lateinit var categoryAdapter: CategoryAdapter
     private var selectedStartDate: Long? = null
     private var selectedEndDate: Long? = null
@@ -39,7 +39,6 @@ class CategoriesActivity : AppCompatActivity() {
             return
         }
 
-        //Initialize Firebase Authentication
         auth = FirebaseAuth.getInstance()
         if (auth.currentUser == null) {
             Log.w("CategoriesActivity", "No user logged in, redirecting to AuthActivity")
@@ -48,38 +47,29 @@ class CategoriesActivity : AppCompatActivity() {
             return
         }
 
-        //Setup RecyclerView, Bottom Navigation, and Chip Group
         setupRecyclerView()
         setupBottomNavigation()
         setupChipGroup()
 
-        //Initialize database and load categories
         lifecycleScope.launch {
             try {
-                database = withContext(Dispatchers.IO) {
-                    AppDatabase.getDatabase(this@CategoriesActivity)
-                }
-                Log.d("CategoriesActivity", "Database initialized")
                 loadCategories()
+                Log.d("CategoriesActivity", "Categories loaded")
             } catch (e: Exception) {
-                Log.e("CategoriesActivity", "Error initializing database: $e")
-                Toast.makeText(this@CategoriesActivity, "Error accessing database", Toast.LENGTH_SHORT).show()
+                Log.e("CategoriesActivity", "Error loading categories: $e")
+                Toast.makeText(this@CategoriesActivity, "Error accessing data", Toast.LENGTH_SHORT).show()
                 finish()
             }
         }
     }
 
-    //Setup RecyclerView for displaying categories
     private fun setupRecyclerView() {
         categoryAdapter = CategoryAdapter { categoryTotal ->
             try {
                 val intent = Intent(this@CategoriesActivity, CategoryExpensesActivity::class.java)
                 intent.putExtra("category", categoryTotal.category)
-
-                // Pass selected date range if present
                 selectedStartDate?.let { intent.putExtra("startDate", it) }
                 selectedEndDate?.let { intent.putExtra("endDate", it) }
-
                 startActivity(intent)
                 Log.d("CategoriesActivity", "Navigating to CategoryExpensesActivity for ${categoryTotal.category} with dates: $selectedStartDate - $selectedEndDate")
             } catch (e: Exception) {
@@ -96,7 +86,6 @@ class CategoriesActivity : AppCompatActivity() {
         Log.d("CategoriesActivity", "RecyclerView set up")
     }
 
-    //Setup Bottom Navigation with item selection actions
     private fun setupBottomNavigation() {
         binding.bottomNav.selectedItemId = R.id.nav_categories
         binding.bottomNav.setOnItemSelectedListener { item ->
@@ -129,7 +118,6 @@ class CategoriesActivity : AppCompatActivity() {
         }
     }
 
-    //Setup Chip Group for filtering categories based on date range
     private fun setupChipGroup() {
         binding.chipGroup.setOnCheckedChangeListener { _, checkedId ->
             when (checkedId) {
@@ -137,7 +125,7 @@ class CategoriesActivity : AppCompatActivity() {
                     Log.d("CategoriesActivity", "All chip selected")
                     selectedStartDate = null
                     selectedEndDate = null
-                    binding.chipDay.text = "Pick Date" //Reset chip text when 'All' is selected
+                    binding.chipDay.text = "Pick Date"
                     loadCategories()
                 }
                 R.id.chipDay -> {
@@ -148,7 +136,6 @@ class CategoriesActivity : AppCompatActivity() {
         }
     }
 
-    //Show Date Range Picker to select start and end dates
     private fun showDateRangePicker() {
         val dateRangePicker = MaterialDatePicker.Builder.dateRangePicker()
             .setTitleText("Select Date Range")
@@ -157,13 +144,11 @@ class CategoriesActivity : AppCompatActivity() {
         dateRangePicker.addOnPositiveButtonClickListener { dateRange ->
             try {
                 selectedStartDate = dateRange.first
-                selectedEndDate = dateRange.second + TimeUnit.DAYS.toMillis(1) - 1 //Include end of day
-
+                selectedEndDate = dateRange.second + TimeUnit.DAYS.toMillis(1) - 1
                 val dateFormat = java.text.SimpleDateFormat("dd/MM/yyyy", java.util.Locale.getDefault())
                 val startDateStr = dateFormat.format(java.util.Date(selectedStartDate!!))
                 val endDateStr = dateFormat.format(java.util.Date(selectedEndDate!!))
                 binding.chipDay.text = "$startDateStr - $endDateStr"
-
                 Log.d("CategoriesActivity", "Date range selected: $startDateStr to $endDateStr")
                 loadCategories()
                 Toast.makeText(this, "Date range applied", Toast.LENGTH_SHORT).show()
@@ -175,28 +160,21 @@ class CategoriesActivity : AppCompatActivity() {
 
         dateRangePicker.addOnNegativeButtonClickListener {
             Log.d("CategoriesActivity", "Date range picker cancelled")
-            binding.chipGroup.check(R.id.chipAll) //Revert to All
+            binding.chipGroup.check(R.id.chipAll)
         }
 
         dateRangePicker.show(supportFragmentManager, "DATE_RANGE_PICKER")
     }
 
-    //Load categories from database, applying date range filters if set
     private fun loadCategories() {
         lifecycleScope.launch {
             val userId = auth.currentUser?.uid ?: return@launch
-            val db = database
-            if (db == null) {
-                Log.e("CategoriesActivity", "Database not initialized in loadCategories")
-                Toast.makeText(this@CategoriesActivity, "Database error", Toast.LENGTH_SHORT).show()
-                return@launch
-            }
             try {
                 val categoryTotals = withContext(Dispatchers.IO) {
                     if (selectedStartDate != null && selectedEndDate != null) {
-                        db.expenseDao().getCategoryTotalsByDateRange(userId, selectedStartDate!!, selectedEndDate!!)
+                        ExpenseRepository.getCategoryTotalsByDateRange(userId, selectedStartDate!!, selectedEndDate!!)
                     } else {
-                        db.expenseDao().getCategoryTotals(userId)
+                        ExpenseRepository.getCategoryTotals(userId)
                     }
                 }
                 categoryAdapter.submitList(categoryTotals)
@@ -219,8 +197,6 @@ class CategoriesActivity : AppCompatActivity() {
     override fun onResume() {
         super.onResume()
         Log.d("CategoriesActivity", "onResume called")
-        database?.let {
-            loadCategories()
-        } ?: Log.w("CategoriesActivity", "Database not initialized in onResume")
+        loadCategories()
     }
 }

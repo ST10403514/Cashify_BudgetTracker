@@ -1,3 +1,4 @@
+
 package com.mason.cashify_budgettracker
 
 import android.content.Intent
@@ -8,9 +9,9 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.google.firebase.auth.FirebaseAuth
-import com.mason.cashify_budgettracker.data.AppDatabase
-import com.mason.cashify_budgettracker.data.Expense
+import com.mason.cashify_budgettracker.data.ExpenseRepository
 import com.mason.cashify_budgettracker.data.Goal
+import com.mason.cashify_budgettracker.data.GoalRepository
 import com.mason.cashify_budgettracker.databinding.ActivityGoalsBinding
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -18,17 +19,16 @@ import kotlinx.coroutines.withContext
 import java.text.SimpleDateFormat
 import java.util.*
 
+data class GoalItem(val goal: Goal, val totalSpent: Double)
+
 class GoalsActivity : AppCompatActivity() {
 
     private lateinit var binding: ActivityGoalsBinding
     private lateinit var auth: FirebaseAuth
-    private var database: AppDatabase? = null
     private lateinit var goalAdapter: GoalAdapter
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-
-        //Initializing binding and setting the content view
         try {
             binding = ActivityGoalsBinding.inflate(layoutInflater)
             setContentView(binding.root)
@@ -40,7 +40,6 @@ class GoalsActivity : AppCompatActivity() {
             return
         }
 
-        //Checking if user is logged in, if not, redirecting to authentication activity
         auth = FirebaseAuth.getInstance()
         if (auth.currentUser == null) {
             Log.w("GoalsActivity", "No user logged in, redirecting to AuthActivity")
@@ -49,31 +48,24 @@ class GoalsActivity : AppCompatActivity() {
             return
         }
 
-        //Setting up RecyclerView for displaying goals
         setupRecyclerView()
 
-        //Initializing database and loading goals using lifecycleScope
         lifecycleScope.launch {
             try {
-                database = withContext(Dispatchers.IO) {
-                    AppDatabase.getDatabase(this@GoalsActivity)
-                }
-                Log.d("GoalsActivity", "Database initialized")
                 loadGoals()
+                Log.d("GoalsActivity", "Goals loaded")
             } catch (e: Exception) {
-                Log.e("GoalsActivity", "Error initializing database: $e")
-                Toast.makeText(this@GoalsActivity, "Error accessing database", Toast.LENGTH_SHORT).show()
+                Log.e("GoalsActivity", "Error loading goals: $e")
+                Toast.makeText(this@GoalsActivity, "Error accessing data", Toast.LENGTH_SHORT).show()
                 finish()
             }
         }
 
-        //Adding click listener to button for adding new goals
         binding.btnAddGoal.setOnClickListener {
             Log.d("GoalsActivity", "Add New Goal clicked")
             startActivity(Intent(this, AddGoalActivity::class.java))
         }
 
-        //Handling bottom navigation item selection
         binding.bottomNav.setOnItemSelectedListener { item ->
             when (item.itemId) {
                 R.id.nav_home -> {
@@ -98,7 +90,6 @@ class GoalsActivity : AppCompatActivity() {
         binding.bottomNav.menu.findItem(R.id.nav_goals)?.isChecked = true
     }
 
-    //Method to set up RecyclerView for displaying goals
     private fun setupRecyclerView() {
         goalAdapter = GoalAdapter()
         binding.rvGoals.apply {
@@ -108,47 +99,66 @@ class GoalsActivity : AppCompatActivity() {
         Log.d("GoalsActivity", "RecyclerView set up")
     }
 
-    //Method to load goals from database and match them with expenses
     private fun loadGoals() {
         lifecycleScope.launch {
             val userId = auth.currentUser?.uid ?: return@launch
-            val db = database
-            if (db == null) {
-                Log.e("GoalsActivity", "Database not initialized in loadGoals")
-                Toast.makeText(this@GoalsActivity, "Database error", Toast.LENGTH_SHORT).show()
-                return@launch
-            }
             try {
-                //Fetching goals and expenses from database
                 val goals = withContext(Dispatchers.IO) {
-                    db.goalDao().getGoals(userId)
+                    GoalRepository.getGoals(userId)
                 }
                 val expenses = withContext(Dispatchers.IO) {
-                    db.expenseDao().getExpenses(userId)
+                    ExpenseRepository.getExpenses(userId)
                 }
 
-                //mapping goals to GoalItem which includes matching expenses
                 val goalItems = goals.map { goal ->
-                    val matchingExpenses = expenses.filter { expense ->
-                        val matches = expense.category == goal.category &&
-                                expense.type == goal.type &&
-                                extractMonthYear(expense.date) == goal.month
-                        if (matches) {
-                            Log.d("GoalsActivity", "Expense matched: date=${expense.date}, goalMonth=${goal.month}")
-                        } else {
-                            Log.d("GoalsActivity", "Expense not matched: date=${expense.date}, goalMonth=${goal.month}")
+                    val monthFormat = SimpleDateFormat("MM/yyyy", Locale.getDefault())
+                    val goalMonth = try {
+                        monthFormat.parse(goal.month)?.let {
+                            Calendar.getInstance().apply {
+                                time = it
+                                set(Calendar.DAY_OF_MONTH, 1)
+                                set(Calendar.HOUR_OF_DAY, 0)
+                                set(Calendar.MINUTE, 0)
+                                set(Calendar.SECOND, 0)
+                                set(Calendar.MILLISECOND, 0)
+                            }.timeInMillis
+                        } ?: 0L
+                    } catch (e: Exception) {
+                        Log.e("GoalsActivity", "Error parsing goal month: ${goal.month}", e)
+                        0L
+                    }
+
+                    val totalSpent = expenses
+                        .filter { expense ->
+                            expense.category == goal.category &&
+                                    expense.type == goal.type &&
+                                    try {
+                                        val expenseDate = SimpleDateFormat("dd/MM/yyyy", Locale.getDefault())
+                                            .parse(expense.date)
+                                        val expenseMonth = Calendar.getInstance().apply {
+                                            time = expenseDate
+                                            set(Calendar.DAY_OF_MONTH, 1)
+                                            set(Calendar.HOUR_OF_DAY, 0)
+                                            set(Calendar.MINUTE, 0)
+                                            set(Calendar.SECOND, 0)
+                                            set(Calendar.MILLISECOND, 0)
+                                        }.timeInMillis
+                                        expenseMonth == goalMonth
+                                    } catch (e: Exception) {
+                                        Log.e("GoalsActivity", "Error parsing expense date: ${expense.date}", e)
+                                        false
+                                    }
                         }
-                        matches
-                    }
-                    val totalSpent = matchingExpenses.sumOf { expense ->
-                        expense.amount //Always positive for goal progress
-                    }
+                        .sumOf { it.amount }
+
                     GoalItem(goal, totalSpent)
                 }
 
-                //Updating adapter with the loaded goal items
                 goalAdapter.submitList(goalItems)
-                Log.d("GoalsActivity", "Goals loaded: $goalItems")
+                Log.d("GoalsActivity", "Loaded goals: ${goals.map { it.id }}")
+                if (goalItems.isEmpty()) {
+                    Toast.makeText(this@GoalsActivity, "No goals found", Toast.LENGTH_SHORT).show()
+                }
             } catch (e: Exception) {
                 Log.e("GoalsActivity", "Error loading goals: $e")
                 Toast.makeText(this@GoalsActivity, "Error loading goals", Toast.LENGTH_SHORT).show()
@@ -156,34 +166,9 @@ class GoalsActivity : AppCompatActivity() {
         }
     }
 
-    //Method to extract month and year from a date string
-    private fun extractMonthYear(date: String): String {
-        return try {
-            val sdfInput = SimpleDateFormat("dd/MM/yyyy", Locale.getDefault()).apply {
-                isLenient = false // Strict parsing
-            }
-            val sdfOutput = SimpleDateFormat("MM/yyyy", Locale.getDefault())
-            val parsedDate = sdfInput.parse(date)
-            if (parsedDate == null) {
-                Log.e("GoalsActivity", "Failed to parse date: $date")
-                return ""
-            }
-            sdfOutput.format(parsedDate)
-        } catch (e: Exception) {
-            Log.e("GoalsActivity", "Error parsing date: $date, error: $e")
-            ""
-        }
-    }
-
-    //Method called when activity is resumed, refreshing  goals list
     override fun onResume() {
         super.onResume()
         Log.d("GoalsActivity", "onResume called")
-        database?.let {
-            loadGoals()
-        } ?: Log.w("GoalsActivity", "Database not initialized in onResume")
+        loadGoals()
     }
 }
-
-//data class to represent goal item with total spent amount
-data class GoalItem(val goal: Goal, val totalSpent: Double)

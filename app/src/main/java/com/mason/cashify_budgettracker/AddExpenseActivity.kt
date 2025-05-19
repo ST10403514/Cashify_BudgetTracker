@@ -1,3 +1,4 @@
+
 package com.mason.cashify_budgettracker
 
 import android.app.DatePickerDialog
@@ -17,9 +18,10 @@ import androidx.core.content.FileProvider
 import androidx.lifecycle.lifecycleScope
 import com.google.android.material.textfield.MaterialAutoCompleteTextView
 import com.google.firebase.auth.FirebaseAuth
-import com.mason.cashify_budgettracker.data.AppDatabase
 import com.mason.cashify_budgettracker.data.Category
+import com.mason.cashify_budgettracker.data.CategoryRepository
 import com.mason.cashify_budgettracker.data.Expense
+import com.mason.cashify_budgettracker.data.ExpenseRepository
 import com.mason.cashify_budgettracker.databinding.ActivityAddExpenseBinding
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -31,33 +33,23 @@ import java.util.*
 
 class AddExpenseActivity : AppCompatActivity() {
 
-    //View binding and Firebase/Auth/DB variables
     private lateinit var binding: ActivityAddExpenseBinding
     private lateinit var auth: FirebaseAuth
-    private lateinit var database: AppDatabase
     private var photoUri: Uri? = null
-
-    //Lists for managing categories
     private val categories = mutableListOf<String>()
     private val defaultCategories = listOf("Food", "Transport", "Entertainment", "Bills", "Other")
-
-    //Calendar for date/time input
     private val calendar = Calendar.getInstance()
-    private var isDatabaseInitialized: Boolean = false
 
-    //Launcher for selecting photo from gallery
     private val galleryLauncher = registerForActivityResult(ActivityResultContracts.PickVisualMedia()) { uri: Uri? ->
         Log.d("AddExpenseActivity", "Gallery result: uri=$uri")
         if (uri != null) {
             try {
-                //Copy photo to app-specific storage
                 val photoFile = createPhotoFile()
                 contentResolver.openInputStream(uri)?.use { input ->
                     FileOutputStream(photoFile).use { output ->
                         input.copyTo(output)
                     }
                 }
-                //Get FileProvider URI to safely access the photo
                 photoUri = FileProvider.getUriForFile(
                     this,
                     "com.mason.cashify_budgettracker.fileprovider",
@@ -73,7 +65,6 @@ class AddExpenseActivity : AppCompatActivity() {
                 binding.ivPhoto.visibility = View.GONE
             }
         } else {
-            //User cancelled photo selection
             photoUri = null
             Toast.makeText(this, "Photo selection cancelled", Toast.LENGTH_SHORT).show()
             Log.d("AddExpenseActivity", "Photo selection cancelled")
@@ -82,8 +73,6 @@ class AddExpenseActivity : AppCompatActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-
-        //Try to inflate layout and setup view binding
         try {
             binding = ActivityAddExpenseBinding.inflate(layoutInflater)
             setContentView(binding.root)
@@ -95,7 +84,6 @@ class AddExpenseActivity : AppCompatActivity() {
             return
         }
 
-        //Initialize Firebase Auth and check for user login
         auth = FirebaseAuth.getInstance()
         if (auth.currentUser == null) {
             Log.w("AddExpenseActivity", "No user logged in, redirecting to AuthActivity")
@@ -104,13 +92,11 @@ class AddExpenseActivity : AppCompatActivity() {
             return
         }
 
-        //Back button to close activity
         binding.btnBack.setOnClickListener {
             Log.d("AddExpenseActivity", "Back button clicked")
             finish()
         }
 
-        //Restore photo URI if activity is recreated
         if (savedInstanceState != null) {
             photoUri = savedInstanceState.getParcelable("photoUri")
             if (photoUri != null) {
@@ -120,51 +106,40 @@ class AddExpenseActivity : AppCompatActivity() {
             }
         }
 
-        //Initialize database and load categories from DB
         lifecycleScope.launch {
             try {
-                database = withContext(Dispatchers.IO) {
-                    AppDatabase.getDatabase(this@AddExpenseActivity)
-                }
-                isDatabaseInitialized = true
                 loadCategories()
-                Log.d("AddExpenseActivity", "Database initialized and categories loaded")
+                Log.d("AddExpenseActivity", "Categories loaded")
             } catch (e: Exception) {
-                Log.e("AddExpenseActivity", "Error initializing database: $e")
-                Toast.makeText(this@AddExpenseActivity, "Error accessing database", Toast.LENGTH_SHORT).show()
+                Log.e("AddExpenseActivity", "Error loading categories: $e")
+                Toast.makeText(this@AddExpenseActivity, "Error accessing data", Toast.LENGTH_SHORT).show()
                 finish()
             }
         }
 
-        //Set up category dropdown list
         val categoryAdapter = ArrayAdapter(this, android.R.layout.simple_dropdown_item_1line, categories)
         (binding.categoryInput as MaterialAutoCompleteTextView).setAdapter(categoryAdapter)
         binding.categoryInput.setOnClickListener {
             binding.categoryInput.showDropDown()
         }
 
-        //Initialize date and time picker functionality
         setupDateTimePickers()
 
-        //Button for selecting photo
         binding.btnCapturePhoto.setOnClickListener {
             Log.d("AddExpenseActivity", "Select Photo clicked")
             galleryLauncher.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly))
         }
 
-        //Add custom category button
         binding.addCategoryText.setOnClickListener {
             Log.d("AddExpenseActivity", "Add Category clicked")
             showAddCategoryDialog()
         }
 
-        //Save expense button
         binding.btnSave.setOnClickListener {
             Log.d("AddExpenseActivity", "Save clicked")
             saveExpense()
         }
 
-        //Bottom navigation bar actions
         binding.bottomNav.setOnItemSelectedListener { item ->
             when (item.itemId) {
                 R.id.nav_home -> {
@@ -187,18 +162,15 @@ class AddExpenseActivity : AppCompatActivity() {
             }
         }
 
-        //Set home tab as selected
         binding.bottomNav.menu.findItem(R.id.nav_home)?.isChecked = true
     }
 
-    //Save photo URI when activity is recreated
     override fun onSaveInstanceState(outState: Bundle) {
         super.onSaveInstanceState(outState)
         outState.putParcelable("photoUri", photoUri)
         Log.d("AddExpenseActivity", "onSaveInstanceState: Saved photoUri")
     }
 
-    //Create a new photo file with timestamp
     private fun createPhotoFile(): File {
         val timeStamp = SimpleDateFormat("yyyyMMdd_HHmmss", Locale.getDefault()).format(Date())
         val storageDir = File(filesDir, "photos")
@@ -206,7 +178,6 @@ class AddExpenseActivity : AppCompatActivity() {
         return File(storageDir, "JPEG_${timeStamp}.jpg")
     }
 
-    //Setup UI for picking date and time
     private fun setupDateTimePickers() {
         binding.dateInput.setOnClickListener {
             val year = calendar.get(Calendar.YEAR)
@@ -243,17 +214,12 @@ class AddExpenseActivity : AppCompatActivity() {
         }
     }
 
-    //Load categories from database and merge with defaults
     private fun loadCategories() {
-        if (!isDatabaseInitialized) {
-            Log.w("AddExpenseActivity", "Database not initialized, skipping category load")
-            return
-        }
         lifecycleScope.launch {
             try {
                 val userId = auth.currentUser?.uid ?: return@launch
                 val dbCategories = withContext(Dispatchers.IO) {
-                    database.categoryDao().getCategories(userId)
+                    CategoryRepository.getCategories(userId)
                 }
                 categories.clear()
                 categories.addAll(defaultCategories)
@@ -269,7 +235,6 @@ class AddExpenseActivity : AppCompatActivity() {
         }
     }
 
-    //Show dialog to add a custom category
     private fun showAddCategoryDialog() {
         try {
             val builder = AlertDialog.Builder(this)
@@ -284,7 +249,7 @@ class AddExpenseActivity : AppCompatActivity() {
                             try {
                                 val userId = auth.currentUser?.uid ?: return@launch
                                 withContext(Dispatchers.IO) {
-                                    database.categoryDao().insert(Category(userId = userId, name = categoryName))
+                                    CategoryRepository.insert(Category(userId = userId, name = categoryName))
                                 }
                                 loadCategories()
                                 Toast.makeText(this@AddExpenseActivity, "Category added", Toast.LENGTH_SHORT).show()
@@ -308,15 +273,7 @@ class AddExpenseActivity : AppCompatActivity() {
         }
     }
 
-    //Save expense to database
     private fun saveExpense() {
-        if (!isDatabaseInitialized) {
-            Toast.makeText(this, "Database not initialized, please try again", Toast.LENGTH_SHORT).show()
-            Log.w("AddExpenseActivity", "Save attempted before database initialized")
-            return
-        }
-
-        //Collect user inputs
         val category = binding.categoryInput.text.toString().trim()
         val type = if (binding.radioIncome.isChecked) "income" else "expense"
         val amountStr = binding.amountInput.text.toString().trim()
@@ -326,7 +283,6 @@ class AddExpenseActivity : AppCompatActivity() {
         val description = binding.descriptionInput.text.toString().trim()
         val userId = auth.currentUser?.uid ?: return
 
-        //Input validation
         if (category.isEmpty() || amountStr.isEmpty() || date.isEmpty() || startTime.isEmpty() || endTime.isEmpty()) {
             Toast.makeText(this, "Please fill all required fields", Toast.LENGTH_SHORT).show()
             Log.w("AddExpenseActivity", "Validation failed: Empty fields")
@@ -340,12 +296,11 @@ class AddExpenseActivity : AppCompatActivity() {
             return
         }
 
-        //Insert expense into DB
         lifecycleScope.launch {
             try {
                 val categoryId = withContext(Dispatchers.IO) {
-                    database.categoryDao().getCategories(userId)
-                        .find { it.name == category }?.id?.toString() ?: category
+                    CategoryRepository.getCategories(userId)
+                        .find { it.name == category }?.id ?: category
                 }
 
                 val expense = Expense(
@@ -380,7 +335,7 @@ class AddExpenseActivity : AppCompatActivity() {
                 )
 
                 withContext(Dispatchers.IO) {
-                    database.expenseDao().insert(expense)
+                    ExpenseRepository.insert(expense)
                 }
 
                 Toast.makeText(this@AddExpenseActivity, "Expense saved", Toast.LENGTH_SHORT).show()
@@ -394,7 +349,6 @@ class AddExpenseActivity : AppCompatActivity() {
         }
     }
 
-    //Log resume event for debugging
     override fun onResume() {
         super.onResume()
         Log.d("AddExpenseActivity", "onResume called")

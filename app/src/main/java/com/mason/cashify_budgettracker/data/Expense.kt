@@ -1,20 +1,19 @@
+
 package com.mason.cashify_budgettracker.data
 
-import androidx.room.Entity
-import androidx.room.PrimaryKey
+import com.google.firebase.firestore.PropertyName
 
-@Entity(tableName = "expenses")
 data class Expense(
-    @PrimaryKey val id: String,
-    val userId: String,
-    val amount: Double,
-    val category: String,
-    val categoryId: String,
-    val type: String,
-    val date: String,
-    val timestamp: Long,
-    val startTime: String,
-    val endTime: String,
-    val description: String,
-    val photoPath: String // Local file path
+    @PropertyName("id") val id: String = "",
+    @PropertyName("userId") val userId: String = "",
+    @PropertyName("amount") val amount: Double = 0.0,
+    @PropertyName("category") val category: String = "",
+    @PropertyName("categoryId") val categoryId: String = "",
+    @PropertyName("type") val type: String = "",
+    @PropertyName("date") val date: String = "",
+    @PropertyName("timestamp") val timestamp: Long = 0L,
+    @PropertyName("startTime") val startTime: String = "",
+    @PropertyName("endTime") val endTime: String = "",
+    @PropertyName("description") val description: String = "",
+    @PropertyName("photoPath") val photoPath: String = ""
 )

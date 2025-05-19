@@ -1,11 +1,9 @@
 package com.mason.cashify_budgettracker.data
 
-import androidx.room.Entity
-import androidx.room.PrimaryKey
+import com.google.firebase.firestore.PropertyName
 
-@Entity(tableName = "categories")
 data class Category(
-    @PrimaryKey(autoGenerate = true) val id: Int = 0,
-    val userId: String,
-    val name: String
+    @PropertyName("id") val id: String = "",
+    @PropertyName("userId") val userId: String = "",
+    @PropertyName("name") val name: String = ""
 )

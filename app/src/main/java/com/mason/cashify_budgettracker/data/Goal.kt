@@ -1,20 +1,18 @@
+
 package com.mason.cashify_budgettracker.data
 
-import androidx.room.Entity
-import androidx.room.PrimaryKey
+import com.google.firebase.firestore.PropertyName
 
-@Entity(tableName = "goals")
 data class Goal(
-    @PrimaryKey(autoGenerate = true)
-    val id: Int = 0,
-    val userId: String,
-    val month: String, // Format: MM/yyyy
-    val category: String,
-    val categoryId: String,
-    val type: String,
-    val description: String,
-    val photoPath: String,
-    val minGoal: Double,
-    val maxGoal: Double,
-    val createdAt: Long // Timestamp in milliseconds
+    @PropertyName("id") val id: String = "",
+    @PropertyName("userId") val userId: String = "",
+    @PropertyName("month") val month: String = "",
+    @PropertyName("category") val category: String = "",
+    @PropertyName("categoryId") val categoryId: String = "",
+    @PropertyName("type") val type: String = "",
+    @PropertyName("description") val description: String = "",
+    @PropertyName("photoPath") val photoPath: String = "",
+    @PropertyName("minGoal") val minGoal: Double = 0.0,
+    @PropertyName("maxGoal") val maxGoal: Double = 0.0,
+    @PropertyName("createdAt") val createdAt: Long = 0L
 )
