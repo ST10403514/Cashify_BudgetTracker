@@ -10,6 +10,7 @@ import com.bumptech.glide.Glide
 import com.mason.cashify_budgettracker.databinding.ItemGoalBinding
 import java.text.SimpleDateFormat
 import java.util.*
+import android.graphics.Color
 
 //Adapter for displaying Goal items in a RecyclerView
 class GoalAdapter : ListAdapter<GoalItem, GoalAdapter.GoalViewHolder>(GoalDiffCallback()) {
@@ -67,13 +68,26 @@ class GoalAdapter : ListAdapter<GoalItem, GoalAdapter.GoalViewHolder>(GoalDiffCa
             }
             binding.progressBar.progress = progress.toInt()
 
-            //Setting status text based on goal type and progress
-            binding.tvStatus.text = when {
-                goal.type == "expense" && totalSpent > goal.maxGoal -> "Over Budget"
-                goal.type == "expense" && totalSpent >= goal.minGoal -> "Within Budget"
-                goal.type == "income" && totalSpent >= goal.minGoal -> "Goal Met"
-                else -> "Below Goal"
+            //Setting status text and color based on goal type and progress
+            when {
+                goal.type == "expense" && totalSpent > goal.maxGoal -> {
+                    binding.tvStatus.text = "Over Goal"
+                    binding.tvStatus.setTextColor(Color.RED)
+                }
+                goal.type == "expense" && totalSpent >= goal.minGoal -> {
+                    binding.tvStatus.text = "Within Goal"
+                    binding.tvStatus.setTextColor(Color.GREEN)
+                }
+                goal.type == "income" && totalSpent >= goal.minGoal -> {
+                    binding.tvStatus.text = "Within Goal"
+                    binding.tvStatus.setTextColor(Color.GREEN)
+                }
+                else -> {
+                    binding.tvStatus.text = "Below Goal"
+                    binding.tvStatus.setTextColor(Color.RED)
+                }
             }
+
         }
     }
 
