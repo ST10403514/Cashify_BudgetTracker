@@ -21,6 +21,7 @@ import java.text.SimpleDateFormat
 import java.util.Calendar
 import java.util.Date
 import java.util.Locale
+import kotlin.math.log
 
 class MainActivity : AppCompatActivity() {
 
@@ -156,6 +157,11 @@ class MainActivity : AppCompatActivity() {
                 R.id.nav_goals -> {
                     Log.d("MainActivity", "Navigating to GoalsActivity")
                     startActivity(Intent(this, GoalsActivity::class.java))
+                    true
+                }
+                R.id.nav_calendar -> {
+                    Log.d("MainActivity","Navigating to CalendarSets")
+                    startActivity(Intent(this, CalendarSets::class.java))
                     true
                 }
                 else -> {

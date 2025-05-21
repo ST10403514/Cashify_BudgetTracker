@@ -113,6 +113,17 @@ class CategoriesActivity : AppCompatActivity() {
                         false
                     }
                 }
+                R.id.nav_calendar -> {
+                    try {
+                        startActivity(Intent(this, CalendarSets::class.java))
+                        Log.d("CategoriesActivity", "Navigating to CalendarSets")
+                        true
+                    } catch (e: Exception) {
+                        Log.e("CategoriesActivity", "Error navigating to CalendarSets: $e")
+                        Toast.makeText(this, "Error opening Goals", Toast.LENGTH_SHORT).show()
+                        false
+                    }
+                }
                 else -> false
             }
         }

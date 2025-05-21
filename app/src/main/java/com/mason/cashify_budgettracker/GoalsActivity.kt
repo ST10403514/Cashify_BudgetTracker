@@ -84,6 +84,12 @@ class GoalsActivity : AppCompatActivity() {
                     Log.d("GoalsActivity", "Goals tab selected")
                     true
                 }
+                R.id.nav_calendar -> {
+                    Log.d("GoalsActivity", "Navigating to CalendarSets")
+                    startActivity(Intent(this, CalendarSets::class.java))
+                    finish()
+                    true
+                }
                 else -> false
             }
         }
