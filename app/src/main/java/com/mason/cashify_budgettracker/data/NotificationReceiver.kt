@@ -12,7 +12,7 @@ import androidx.core.app.NotificationManagerCompat
 class NotificationReceiver : BroadcastReceiver() {
     override fun onReceive(context: Context, intent: Intent) {
         val title = intent.getStringExtra("title")
-        val message = intent.getStringExtra("message")
+        val message = intent.getStringExtra("message") ?: "Today is your deadline's last day!"
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             val channel = NotificationChannel(
