@@ -57,6 +57,9 @@ class CalendarSets : AppCompatActivity() {
         }
         DeadStore = FirebaseFirestore.getInstance()
 
+        binding = ActivityCalendarSetsBinding.inflate(layoutInflater)
+        setContentView(binding.root)
+
         calendarView = findViewById(R.id.calendarView)
         titleInput = findViewById(R.id.titleInput)
         amountInput = findViewById(R.id. amountInput)
@@ -190,8 +193,9 @@ class CalendarSets : AppCompatActivity() {
                 scheduleNotification(title, startDate)
                 clearFields()
             }
-            . addOnFailureListener{
+            . addOnFailureListener{ exception ->
                 Toast.makeText(this, "Error saving deadline", Toast.LENGTH_SHORT).show()
+                exception.printStackTrace()
             }
     }
 
