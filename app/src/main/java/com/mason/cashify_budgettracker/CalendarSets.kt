@@ -6,6 +6,7 @@ import android.app.Notification
 import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.app.PendingIntent
+import android.app.TimePickerDialog
 import android.content.Context
 import android.content.Intent
 import android.icu.text.CaseMap.Title
@@ -69,6 +70,30 @@ class CalendarSets : AppCompatActivity() {
         btnSave = findViewById(R.id.btnSaveDeadline)
 
         createNotificationChannel()
+
+        val timeInput: TextInputEditText = findViewById(R.id.timeInput)
+
+        timeInput.setOnClickListener {
+            val calendar = Calendar.getInstance()
+            val hour = calendar.get(Calendar.HOUR_OF_DAY)
+            val minute = calendar.get(Calendar.MINUTE)
+
+            TimePickerDialog(this, { _, selectedHour, selectedMinute ->
+                val formattedTime = String.format("%02d:%02d", selectedHour, selectedMinute)
+                timeInput.setText(formattedTime)
+
+                // Save time and schedule notification
+                val selectedTime = Calendar.getInstance().apply {
+                    set(Calendar.HOUR_OF_DAY, selectedHour)
+                    set(Calendar.MINUTE, selectedMinute)
+                    set(Calendar.SECOND, 0)
+                    set(Calendar.MILLISECOND, 0)
+                }
+
+                //scheduleNotification(selectedTime.timeInMillis)
+
+            }, hour, minute, true).show()
+        }
 
         var startDate: Calendar? = null
         var endDate: Calendar? = null
@@ -137,6 +162,25 @@ class CalendarSets : AppCompatActivity() {
         binding.bottomNav.menu.findItem(R.id.nav_calendar)?.isChecked = true
     }
 
+    private fun scheduleNotification(triggerTime: Long) {
+        val intent = Intent(this, NotificationReceiver::class.java).apply {
+            putExtra("title", "Budget Deadline Reminder")
+            putExtra("message", "You have a budget deadline today!")
+        }
+
+        val pendingIntent = PendingIntent.getBroadcast(
+            this,
+            0,
+            intent,
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+        )
+
+        val alarmManager = getSystemService(Context.ALARM_SERVICE) as AlarmManager
+        alarmManager.setExact(AlarmManager.RTC_WAKEUP, triggerTime, pendingIntent)
+
+        Toast.makeText(this, "Reminder set!", Toast.LENGTH_SHORT).show()
+    }
+
     private fun getDatesBetween(startDate: Calendar, endDate: Calendar): List<Calendar> {
         val dates = mutableListOf<Calendar>()
         val current = startDate.clone() as Calendar
@@ -190,7 +234,22 @@ class CalendarSets : AppCompatActivity() {
             .add(deadline)
             .addOnSuccessListener {
                 Toast.makeText(this, "Deadline Saved!", Toast.LENGTH_SHORT).show()
-                scheduleNotification(title, startDate)
+                val timeParts = binding.timeInput.text.toString().split(":")
+                if (timeParts.size == 2) {
+                    val hour = timeParts[0].toInt()
+                    val minute = timeParts[1].toInt()
+
+                    val notifyCalendar = Calendar.getInstance().apply {
+                        time = endDate // 🔔 Set to end of the deadline range
+                        set(Calendar.HOUR_OF_DAY, hour)
+                        set(Calendar.MINUTE, minute)
+                        set(Calendar.SECOND, 0)
+                        set(Calendar.MILLISECOND, 0)
+                    }
+
+                    scheduleNotification(title, notifyCalendar.time)
+                }
+
                 clearFields()
             }
             . addOnFailureListener{ exception ->
