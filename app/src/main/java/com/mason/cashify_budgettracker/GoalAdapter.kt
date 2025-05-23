@@ -43,8 +43,14 @@ class GoalAdapter : ListAdapter<GoalItem, GoalAdapter.GoalViewHolder>(GoalDiffCa
             binding.tvMonth.text = "Month: ${goal.month}"
             binding.tvCreatedAt.text = "Created: ${dateFormat.format(Date(goal.createdAt))}"
             binding.tvType.text = goal.type.replaceFirstChar { it.uppercase() }
-            binding.tvMinMax.text = "Min: ${CurrencyUtils.formatCurrency(goal.minGoal)} | Max: ${CurrencyUtils.formatCurrency(goal.maxGoal)}"
-            binding.tvAmountProgress.text = "Spent: ${CurrencyUtils.formatCurrency(totalSpent)}"
+
+            val symbol = CurrencyConverter.getCurrencySymbol()
+            val convertedMin = CurrencyConverter.convertAmount(goal.minGoal)
+            val convertedMax = CurrencyConverter.convertAmount(goal.maxGoal)
+            val convertedSpent = CurrencyConverter.convertAmount(totalSpent)
+
+            binding.tvMinMax.text = "Min: $symbol${String.format("%.2f", convertedMin)} | Max: $symbol${String.format("%.2f", convertedMax)}"
+            binding.tvAmountProgress.text = "Spent: $symbol${String.format("%.2f", convertedSpent)}"
 
             //Conditionally load photo if it exists
             if (goal.photoPath.isNotEmpty()) {

@@ -22,6 +22,12 @@ import java.util.Calendar
 import java.util.Date
 import java.util.Locale
 import kotlin.math.log
+import android.widget.AdapterView
+import android.widget.ArrayAdapter
+import android.view.View
+import java.net.URL
+import java.net.HttpURLConnection
+import org.json.JSONObject
 
 class MainActivity : AppCompatActivity() {
 
@@ -34,6 +40,12 @@ class MainActivity : AppCompatActivity() {
     private var lastNavClickTime: Long = 0
     private val navDebounceDelay: Long = 500
     private val dateFormat = SimpleDateFormat("dd/MM/yyyy", Locale.getDefault())
+
+    private val currencies = listOf("ZAR", "USD", "EUR", "GBP", "JPY")
+
+    private val apiKey = "cur_live_jjcHI3oPbo0SD8f2qe3Fn2C4h4GAabDHc0kAOGDt"
+    private val baseUrl = "https://api.currencyapi.com/v3/latest"
+
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -171,6 +183,24 @@ class MainActivity : AppCompatActivity() {
             }
         }
         binding.bottomNav.menu.findItem(R.id.nav_home)?.isChecked = true
+
+        val adapter = ArrayAdapter(this, android.R.layout.simple_spinner_item, currencies)
+        adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item)
+        binding.currencySpinner.adapter = adapter
+
+        binding.currencySpinner.setSelection(currencies.indexOf(CurrencyConverter.getSelectedCurrency()))
+
+        binding.currencySpinner.onItemSelectedListener = object : AdapterView.OnItemSelectedListener {
+            override fun onItemSelected(parent: AdapterView<*>?, view: View?, position: Int, id: Long) {
+                val newCurrency = currencies[position]
+                if (newCurrency != CurrencyConverter.getSelectedCurrency()) {
+                    CurrencyConverter.setSelectedCurrency(newCurrency)
+                    fetchExchangeRatesAndUpdate()
+                }
+            }
+            override fun onNothingSelected(parent: AdapterView<*>?) {}
+        }
+
     }
 
     private fun showDateRangePicker() {
@@ -214,19 +244,79 @@ class MainActivity : AppCompatActivity() {
                         else -> ExpenseRepository.getExpenses(userId)
                     }
                 }
-                expenseAdapter.updateExpenses(expenses)
-                Log.d("MainActivity", "Fetched expenses: ${expenses.map { it.id }}")
 
-                val balance = expenses.sumOf { expense ->
+                // Apply currency conversion if exchange rate available, else use original amounts
+                val convertedExpenses = expenses.map { expense ->
+                    expense.copy(amount = CurrencyConverter.convertAmount(expense.amount))
+                }
+
+                expenseAdapter.updateExpenses(convertedExpenses)
+                Log.d("MainActivity", "Fetched expenses (converted): ${convertedExpenses.map { it.id }}")
+
+                // Calculate balance in selected currency
+                val balance = convertedExpenses.sumOf { expense ->
                     if (expense.type == "income") expense.amount else -expense.amount
                 }
-                binding.tvBalance.text = "Balance: R${DecimalFormat("0.00").format(balance)}"
-                Log.d("MainActivity", "Balance updated: $balance")
+
+                // Format the balance with currency symbol
+                val currencySymbol = CurrencyConverter.getCurrencySymbol()
+                val selectedCurrency = CurrencyConverter.getSelectedCurrency()
+                binding.tvBalance.text = "Balance: $currencySymbol${DecimalFormat("0.00").format(balance)}"
+                Log.d("MainActivity", "Balance updated: $balance $selectedCurrency")
+
             } catch (e: Exception) {
                 Log.e("MainActivity", "Error loading expenses: $e")
                 Toast.makeText(this@MainActivity, "Error loading expenses", Toast.LENGTH_SHORT).show()
             }
         }
+    }
+
+    private fun fetchExchangeRatesAndUpdate() {
+        lifecycleScope.launch {
+            try {
+                val urlString = "$baseUrl?apikey=$apiKey&base_currency=ZAR"
+                val rates = withContext(Dispatchers.IO) {
+                    val url = URL(urlString)
+                    val connection = url.openConnection() as HttpURLConnection
+                    connection.requestMethod = "GET"
+                    connection.connectTimeout = 5000
+                    connection.readTimeout = 5000
+
+                    if (connection.responseCode == 200) {
+                        val stream = connection.inputStream.bufferedReader().use { it.readText() }
+                        parseRatesFromJson(stream)
+                    } else {
+                        null
+                    }
+                }
+
+                if (rates != null) {
+                    CurrencyConverter.setExchangeRates(rates)
+                    loadExpenses() // call your function to reload and convert expenses display
+                } else {
+                    Toast.makeText(this@MainActivity, "Failed to get exchange rates", Toast.LENGTH_SHORT).show()
+                }
+            } catch (e: Exception) {
+                Toast.makeText(this@MainActivity, "Error fetching exchange rates", Toast.LENGTH_SHORT).show()
+            }
+        }
+    }
+
+    private fun parseRatesFromJson(jsonString: String): Map<String, Double> {
+        val jsonObject = JSONObject(jsonString)
+        val data = jsonObject.getJSONObject("data")
+        val ratesMap = mutableMapOf<String, Double>()
+        currencies.forEach { currency ->
+            if (currency != "ZAR") {
+                val currencyObj = data.optJSONObject(currency)
+                if (currencyObj != null) {
+                    ratesMap[currency] = currencyObj.getDouble("value")
+                }
+            } else {
+                ratesMap[currency] = 1.0
+            }
+        }
+        return ratesMap
     }
 
     override fun onResume() {

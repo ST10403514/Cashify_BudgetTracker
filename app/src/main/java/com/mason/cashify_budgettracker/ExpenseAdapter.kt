@@ -30,7 +30,9 @@ class ExpenseAdapter(
     override fun onBindViewHolder(holder: ExpenseViewHolder, position: Int) {
         val expense = expenses[position]  //Get expense at current position
         with(holder.binding) {
-            tvAmount.text = CurrencyUtils.formatCurrency(expense.amount, expense.type == "expense")
+            val currencySymbol = CurrencyConverter.getCurrencySymbol()
+            val formattedAmount = "$currencySymbol${String.format("%.2f", expense.amount)}"
+            tvAmount.text = if (expense.type == "income") formattedAmount else "-$formattedAmount"
             tvAmount.setTextColor(if (expense.type == "income") Color.GREEN else Color.RED)
             tvCategory.text = expense.category
             tvCategory.setTypeface(null, android.graphics.Typeface.NORMAL)

@@ -31,6 +31,15 @@
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintTop_toTopOf="parent" />
 
+    <Spinner
+        android:id="@+id/currencySpinner"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="16dp"
+        app:layout_constraintTop_toBottomOf="@id/logoutButton"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"/>
+
     <!-- Chip group -->
     <com.google.android.material.chip.ChipGroup
         android:id="@+id/chipGroup"
@@ -39,7 +48,7 @@
         app:chipSpacingHorizontal="8dp"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@id/tvWelcome"
+        app:layout_constraintTop_toBottomOf="@id/currencySpinner"
         android:layout_marginTop="15dp"
         app:singleSelection="true">
 

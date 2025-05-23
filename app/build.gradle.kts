@@ -74,6 +74,10 @@ dependencies {
     implementation ("com.google.android.material:material:1.11.0")
     implementation("com.applandeo:material-calendar-view:1.9.0-rc03")
 
+    // Currency converter dependencies
+    implementation("com.squareup.okhttp3:okhttp:4.9.3")
+    implementation("com.google.code.gson:gson:2.9.0")
+
     // For range selection
 
 }

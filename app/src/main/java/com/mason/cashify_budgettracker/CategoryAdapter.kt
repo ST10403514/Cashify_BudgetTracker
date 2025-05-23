@@ -21,7 +21,10 @@ class CategoryAdapter(
         //Bind category data to the UI components
         fun bind(categoryTotal: CategoryTotal) {
             binding.tvCategoryName.text = categoryTotal.category
-            binding.tvCategoryTotal.text = String.format("R%.2f", categoryTotal.total)
+
+            val symbol = CurrencyConverter.getCurrencySymbol()
+            val convertedTotal = CurrencyConverter.convertAmount(categoryTotal.total)
+            binding.tvCategoryTotal.text = String.format("%s%.2f", symbol, convertedTotal)
 
             //Set click listener for item
             binding.root.setOnClickListener {
