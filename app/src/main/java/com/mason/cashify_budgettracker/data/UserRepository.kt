@@ -6,6 +6,7 @@ import com.google.firebase.ktx.Firebase
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.tasks.await
 import kotlinx.coroutines.withContext
+import android.util.Log
 
 data class User(
     val id: String = "",
@@ -16,22 +17,21 @@ data class User(
 object UserRepository {
     private val db = Firebase.firestore
 
-    suspend fun insert(user: User) = withContext(Dispatchers.IO) {
+    suspend fun getUserByUsername(username: String): User? {
+        return try {
+            val snapshot = db.collection("users")
+                .whereEqualTo("username", username)
+                .get()
+                .await()
+
+            snapshot.documents.firstOrNull()?.toObject(User::class.java)
+        } catch (e: Exception) {
+            Log.e("UserRepository", "Error fetching user", e)
+            null
+        }
+    }
+
+    suspend fun insert(user: User) {
         db.collection("users").document(user.id).set(user).await()
-    }
-
-    suspend fun getUserByUsername(username: String): User? = withContext(Dispatchers.IO) {
-        db.collection("users")
-            .whereEqualTo("username", username)
-            .get().await()
-            .documents
-            .firstOrNull()
-            ?.toObject(User::class.java)
-    }
-
-    suspend fun getUserById(userId: String): User? = withContext(Dispatchers.IO) {
-        db.collection("users").document(userId)
-            .get().await()
-            .toObject(User::class.java)
     }
 }

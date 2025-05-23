@@ -1,13 +1,13 @@
 {
   "project_info": {
-    "project_number": "307094165707",
-    "project_id": "cashify-605d6",
-    "storage_bucket": "cashify-605d6.firebasestorage.app"
+    "project_number": "895337859581",
+    "project_id": "cashifyv2",
+    "storage_bucket": "cashifyv2.firebasestorage.app"
   },
   "client": [
     {
       "client_info": {
-        "mobilesdk_app_id": "1:307094165707:android:bea6fea2296a4d1d35634e",
+        "mobilesdk_app_id": "1:895337859581:android:3eda26dadd27229b8af194",
         "android_client_info": {
           "package_name": "com.mason.cashify_budgettracker"
         }
@@ -15,7 +15,7 @@
       "oauth_client": [],
       "api_key": [
         {
-          "current_key": "AIzaSyBH93XaSlKOpBWnOeXcgYXM52_jLb6VIPY"
+          "current_key": "AIzaSyDMZkIlJHlyd1iomI5OxtAkVDJuIJ28-Q8"
         }
       ],
       "services": {
