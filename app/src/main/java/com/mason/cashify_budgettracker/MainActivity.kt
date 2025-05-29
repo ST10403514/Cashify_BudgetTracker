@@ -1,9 +1,11 @@
-
 package com.mason.cashify_budgettracker
 
 import android.content.Intent
 import android.os.Bundle
 import android.util.Log
+import android.view.View
+import android.widget.AdapterView
+import android.widget.ArrayAdapter
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.lifecycleScope
@@ -16,18 +18,14 @@ import com.mason.cashify_budgettracker.databinding.ActivityMainBinding
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import org.json.JSONObject
+import java.net.HttpURLConnection
+import java.net.URL
 import java.text.DecimalFormat
 import java.text.SimpleDateFormat
 import java.util.Calendar
 import java.util.Date
 import java.util.Locale
-import kotlin.math.log
-import android.widget.AdapterView
-import android.widget.ArrayAdapter
-import android.view.View
-import java.net.URL
-import java.net.HttpURLConnection
-import org.json.JSONObject
 
 class MainActivity : AppCompatActivity() {
 
@@ -45,7 +43,6 @@ class MainActivity : AppCompatActivity() {
 
     private val apiKey = "cur_live_jjcHI3oPbo0SD8f2qe3Fn2C4h4GAabDHc0kAOGDt"
     private val baseUrl = "https://api.currencyapi.com/v3/latest"
-
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -172,8 +169,13 @@ class MainActivity : AppCompatActivity() {
                     true
                 }
                 R.id.nav_calendar -> {
-                    Log.d("MainActivity","Navigating to CalendarSets")
+                    Log.d("MainActivity", "Navigating to CalendarSets")
                     startActivity(Intent(this, CalendarSets::class.java))
+                    true
+                }
+                R.id.nav_reports -> {
+                    Log.d("MainActivity", "Navigating to ReportsActivity")
+                    startActivity(Intent(this, ReportsActivity::class.java))
                     true
                 }
                 else -> {
@@ -200,7 +202,6 @@ class MainActivity : AppCompatActivity() {
             }
             override fun onNothingSelected(parent: AdapterView<*>?) {}
         }
-
     }
 
     private fun showDateRangePicker() {
@@ -263,7 +264,6 @@ class MainActivity : AppCompatActivity() {
                 val selectedCurrency = CurrencyConverter.getSelectedCurrency()
                 binding.tvBalance.text = "Balance: $currencySymbol${DecimalFormat("0.00").format(balance)}"
                 Log.d("MainActivity", "Balance updated: $balance $selectedCurrency")
-
             } catch (e: Exception) {
                 Log.e("MainActivity", "Error loading expenses: $e")
                 Toast.makeText(this@MainActivity, "Error loading expenses", Toast.LENGTH_SHORT).show()

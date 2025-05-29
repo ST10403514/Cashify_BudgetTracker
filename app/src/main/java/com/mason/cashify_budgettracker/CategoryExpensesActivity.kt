@@ -123,6 +123,11 @@ class CategoryExpensesActivity : AppCompatActivity() {
                     startActivity(Intent(this, GoalsActivity::class.java))
                     true
                 }
+                R.id.nav_reports -> {
+                    Log.d("CategoryExpensesActivity", "Navigating to ReportsActivity")
+                    startActivity(Intent(this, ReportsActivity::class.java))
+                    true
+                }
                 else -> false
             }
         }

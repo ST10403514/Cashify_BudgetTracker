@@ -2,17 +2,17 @@ package com.mason.cashify_budgettracker
 
 import android.Manifest
 import android.app.AlarmManager
-import android.app.Notification
+
 import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.app.PendingIntent
 import android.app.TimePickerDialog
 import android.content.Context
 import android.content.Intent
-import android.icu.text.CaseMap.Title
+
 import android.os.Build
 import android.os.Bundle
-import android.provider.Telephony.Mms.Intents
+
 import android.util.Log
 import android.widget.TextView
 import android.widget.Toast
@@ -156,7 +156,13 @@ class CalendarSets : AppCompatActivity() {
                     Log.d("CalendarSets", "Calendar tab Selected")
                     true
                 }
+                R.id.nav_reports -> {
+                    Log.d("CalenderSets", "Navigating to ReportsActivity")
+                    startActivity(Intent(this, ReportsActivity::class.java))
+                    true
+                }
                 else -> false
+
             }
         }
         binding.bottomNav.menu.findItem(R.id.nav_calendar)?.isChecked = true

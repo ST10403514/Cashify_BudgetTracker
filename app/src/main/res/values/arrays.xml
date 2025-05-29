@@ -12,5 +12,11 @@
     <item>Income</item>
     <item>Expense</item>
     </string-array>
+
+    <string-array name="period_options">
+        <item>Last Week</item>
+        <item>Last Month</item>
+        <item>Custom Range</item>
+    </string-array>
     </resources>
 

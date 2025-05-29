@@ -163,6 +163,16 @@ class AddGoalActivity : AppCompatActivity() {
                     Log.d("AddGoalActivity", "Goals tab selected")
                     true
                 }
+                R.id.nav_calendar -> {
+                    Log.d("MainActivity", "Navigating to CalendarSets")
+                    startActivity(Intent(this, CalendarSets::class.java))
+                    true
+                }
+                R.id.nav_reports -> {
+                    Log.d("MainActivity", "Navigating to ReportsActivity")
+                    startActivity(Intent(this, ReportsActivity::class.java))
+                    true
+                }
                 else -> false
             }
         }

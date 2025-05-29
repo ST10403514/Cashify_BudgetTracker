@@ -90,6 +90,12 @@ class GoalsActivity : AppCompatActivity() {
                     finish()
                     true
                 }
+                R.id.nav_reports -> {
+                Log.d("MainActivity", "Navigating to ReportsActivity")
+                startActivity(Intent(this, ReportsActivity::class.java))
+                true
+            }
+
                 else -> false
             }
         }
