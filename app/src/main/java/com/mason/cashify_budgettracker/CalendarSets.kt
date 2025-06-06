@@ -14,11 +14,14 @@ import android.os.Build
 import android.os.Bundle
 
 import android.util.Log
+import android.widget.ArrayAdapter
+import android.widget.AutoCompleteTextView
 import android.widget.TextView
 import android.widget.Toast
 import androidx.activity.enableEdgeToEdge
 import androidx.annotation.RequiresPermission
 import androidx.appcompat.app.AppCompatActivity
+import androidx.core.content.ContentProviderCompat.requireContext
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
 import com.applandeo.materialcalendarview.CalendarView
@@ -40,7 +43,7 @@ class CalendarSets : AppCompatActivity() {
     private lateinit var calendarView: CalendarView
     private lateinit var titleInput: TextInputEditText
     private lateinit var amountInput: TextInputEditText
-    private lateinit var categoryInput: TextInputEditText
+    private lateinit var categoryInput: AutoCompleteTextView
     private lateinit var notesInput: TextInputEditText
     private lateinit var dateRangeText: TextView
     private lateinit var btnSave: MaterialButton
@@ -64,10 +67,17 @@ class CalendarSets : AppCompatActivity() {
         calendarView = findViewById(R.id.calendarView)
         titleInput = findViewById(R.id.titleInput)
         amountInput = findViewById(R.id. amountInput)
-        categoryInput = findViewById(R.id.categoryInput)
+        categoryInput = findViewById(R.id.categoryDropdown)
         notesInput = findViewById(R.id.notesInput)
         dateRangeText = findViewById(R.id.dateRangeText)
         btnSave = findViewById(R.id.btnSaveDeadline)
+
+        val categoryOptions = listOf("Food", "Transport", "Health", "Entertainment", "Utilities")
+        val adapter = ArrayAdapter(this, android.R.layout.simple_dropdown_item_1line, categoryOptions)
+        categoryInput.setAdapter(adapter)
+
+
+        val selectedCategory = categoryInput.text.toString()
 
         createNotificationChannel()
 
