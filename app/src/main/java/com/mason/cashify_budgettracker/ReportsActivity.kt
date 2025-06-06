@@ -174,6 +174,11 @@ class ReportsActivity : AppCompatActivity() {
                     }
                 }
 
+                // Show toast if no transactions
+                if (expenses.isEmpty()) {
+                    Toast.makeText(this@ReportsActivity, "There are no transactions for this time period", Toast.LENGTH_SHORT).show()
+                }
+
                 // Load goals for the target month
                 val goals = withContext(Dispatchers.IO) {
                     GoalRepository.getGoals(userId).filter { it.month == targetMonth }
