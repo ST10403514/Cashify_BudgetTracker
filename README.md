@@ -134,6 +134,7 @@ Cashify is built for reliability, security, and responsiveness, making it ideal 
 2. Enter a username, valid email, and password (minimum 6 characters).
 3. Click **Signup** to create an account and go to the **Login Page**.
 4. Already have an account? Click **Switch to Login** to go to the **Login Page**.
+5. Make sure to enable the Notifications option in the Apps **Settings**.
 
 ### Login Page
 1. Enter your email and password.
