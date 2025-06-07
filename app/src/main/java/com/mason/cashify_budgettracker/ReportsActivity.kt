@@ -161,21 +161,25 @@ class ReportsActivity : AppCompatActivity() {
                 val endDate = endCalendar.time
                 val targetMonth = monthFormat.format(endDate)
 
-                // Load expenses
-                val expenses = withContext(Dispatchers.IO) {
+                // Load all transactions
+                val transactions = withContext(Dispatchers.IO) {
                     ExpenseRepository.getExpenses(userId).filter {
                         try {
-                            val expenseDate = dateFormat.parse(it.date)
-                            expenseDate in startDate..endDate
+                            val transactionDate = dateFormat.parse(it.date)
+                            transactionDate in startDate..endDate
                         } catch (e: Exception) {
-                            Log.e("ReportsActivity", "Error parsing expense date: ${it.date}", e)
+                            Log.e("ReportsActivity", "Error parsing transaction date: ${it.date}", e)
                             false
                         }
                     }
                 }
 
+                // Separate expenses and income
+                val expenses = transactions.filter { it.type == "expense" }
+                val income = transactions.filter { it.type == "income" }
+
                 // Show toast if no transactions
-                if (expenses.isEmpty()) {
+                if (expenses.isEmpty() && income.isEmpty()) {
                     Toast.makeText(this@ReportsActivity, "There are no transactions for this time period", Toast.LENGTH_SHORT).show()
                 }
 
@@ -184,21 +188,28 @@ class ReportsActivity : AppCompatActivity() {
                     GoalRepository.getGoals(userId).filter { it.month == targetMonth }
                 }
 
-                // Group expenses by category (expenses only) with currency conversion
-                val categorySpends = expenses
-                    .filter { it.type == "expense" }
-                    .groupBy { it.category }
+                // Group expenses and income by category
+                val categorySpends = expenses.groupBy { it.category }
+                    .mapValues { entry ->
+                        entry.value.sumOf { CurrencyConverter.convertAmount(it.amount) }
+                    }
+                val categoryIncome = income.groupBy { it.category }
                     .mapValues { entry ->
                         entry.value.sumOf { CurrencyConverter.convertAmount(it.amount) }
                     }
 
-                // Prepare chart data
-                val entries = categorySpends.entries.mapIndexed { index, entry ->
-                    BarEntry(index.toFloat(), entry.value.toFloat())
-                }
-                val labels = categorySpends.keys.toList()
+                // Combine categories from expenses and income
+                val labels = (categorySpends.keys + categoryIncome.keys).distinct().sorted()
 
-                // Get min/max goals for charts
+                // Prepare expense and income chart data
+                val expenseEntries = labels.mapIndexed { index, category ->
+                    BarEntry(index.toFloat() - 0.2f, categorySpends[category]?.toFloat() ?: 0f)
+                }
+                val incomeEntries = labels.mapIndexed { index, category ->
+                    BarEntry(index.toFloat() + 0.2f, categoryIncome[category]?.toFloat() ?: 0f)
+                }
+
+                // Get min/max goals for charts (expense categories only)
                 val minGoals = mutableMapOf<String, Float>()
                 val maxGoals = mutableMapOf<String, Float>()
                 goals.forEach { goal ->
@@ -208,7 +219,7 @@ class ReportsActivity : AppCompatActivity() {
                     }
                 }
 
-                updateSpendingChart(entries, labels, minGoals, maxGoals)
+                updateSpendingChart(expenseEntries, incomeEntries, labels, minGoals, maxGoals)
                 updateGoalsChart(labels, minGoals, maxGoals)
             } catch (e: Exception) {
                 Toast.makeText(this@ReportsActivity, "Error loading data: ${e.message}", Toast.LENGTH_SHORT).show()
@@ -217,11 +228,17 @@ class ReportsActivity : AppCompatActivity() {
         }
     }
 
-    private fun updateSpendingChart(entries: List<BarEntry>, labels: List<String>, minGoals: Map<String, Float>, maxGoals: Map<String, Float>) {
+    private fun updateSpendingChart(
+        expenseEntries: List<BarEntry>,
+        incomeEntries: List<BarEntry>,
+        labels: List<String>,
+        minGoals: Map<String, Float>,
+        maxGoals: Map<String, Float>
+    ) {
         val currencySymbol = CurrencyConverter.getCurrencySymbol()
 
-        // Spending bars
-        val barDataSet = BarDataSet(entries, "Spending").apply {
+        // Expense bars
+        val expenseDataSet = BarDataSet(expenseEntries, "Expenses").apply {
             color = android.graphics.Color.BLUE
             valueFormatter = object : com.github.mikephil.charting.formatter.ValueFormatter() {
                 override fun getFormattedValue(value: Float): String {
@@ -229,21 +246,34 @@ class ReportsActivity : AppCompatActivity() {
                 }
             }
         }
-        val barData = BarData(barDataSet).apply {
-            barWidth = 0.3f
+
+        // Income bars
+        val incomeDataSet = BarDataSet(incomeEntries, "Income").apply {
+            color = android.graphics.Color.GREEN
+            valueFormatter = object : com.github.mikephil.charting.formatter.ValueFormatter() {
+                override fun getFormattedValue(value: Float): String {
+                    return String.format("%s%.2f", currencySymbol, value)
+                }
+            }
+        }
+
+        // Combine bar data
+        val barData = BarData(expenseDataSet, incomeDataSet).apply {
+            barWidth = 0.2f
+            groupBars(-0.5f, 0.4f, 0.1f) // Start at -0.5, group width 0.4, gap 0.1
         }
 
         // Min goal lines
         val minLineEntries = labels.mapIndexed { index, category ->
             minGoals[category]?.takeIf { it > 0 }?.let {
                 listOf(
-                    Entry(index.toFloat() - 0.1f, it),
-                    Entry(index.toFloat() + 0.1f, it)
+                    Entry(index.toFloat() - 0.3f, it),
+                    Entry(index.toFloat() + 0.3f, it)
                 )
             } ?: emptyList()
         }.flatten()
         val minLineDataSet = LineDataSet(minLineEntries, "Min Goal").apply {
-            color = android.graphics.Color.GREEN
+            color = android.graphics.Color.MAGENTA
             lineWidth = 2f
             setDrawCircles(false)
             setDrawValues(false)
@@ -253,8 +283,8 @@ class ReportsActivity : AppCompatActivity() {
         val maxLineEntries = labels.mapIndexed { index, category ->
             maxGoals[category]?.takeIf { it > 0 }?.let {
                 listOf(
-                    Entry(index.toFloat() - 0.1f, it),
-                    Entry(index.toFloat() + 0.1f, it)
+                    Entry(index.toFloat() - 0.3f, it),
+                    Entry(index.toFloat() + 0.3f, it)
                 )
             } ?: emptyList()
         }.flatten()
@@ -296,10 +326,10 @@ class ReportsActivity : AppCompatActivity() {
             legend.isEnabled = true
             legend.form = com.github.mikephil.charting.components.Legend.LegendForm.LINE
             legend.textSize = 12f
-            legend.horizontalAlignment = com.github.mikephil.charting.components.Legend.LegendHorizontalAlignment.CENTER
+            legend.horizontalAlignment = com.github.mikephil.charting.components.Legend.LegendHorizontalAlignment.LEFT
             legend.verticalAlignment = com.github.mikephil.charting.components.Legend.LegendVerticalAlignment.TOP
-            // Increased padding
             legend.xEntrySpace = 30f // Increased spacing between entries
+            legend.xOffset = 10f // Added left padding
             animateY(1000)
             invalidate()
         }
@@ -361,10 +391,10 @@ class ReportsActivity : AppCompatActivity() {
             legend.isEnabled = true
             legend.form = com.github.mikephil.charting.components.Legend.LegendForm.SQUARE
             legend.textSize = 12f
-            legend.horizontalAlignment = com.github.mikephil.charting.components.Legend.LegendHorizontalAlignment.CENTER
+            legend.horizontalAlignment = com.github.mikephil.charting.components.Legend.LegendHorizontalAlignment.LEFT
             legend.verticalAlignment = com.github.mikephil.charting.components.Legend.LegendVerticalAlignment.TOP
-            // Increased padding
             legend.xEntrySpace = 30f // Increased spacing between entries
+            legend.xOffset = 10f // Added left padding
             animateY(1000)
             invalidate()
         }
