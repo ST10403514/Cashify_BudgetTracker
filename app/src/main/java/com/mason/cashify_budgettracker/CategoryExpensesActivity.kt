@@ -1,4 +1,3 @@
-
 package com.mason.cashify_budgettracker
 
 import android.content.Intent
@@ -29,7 +28,6 @@ class CategoryExpensesActivity : AppCompatActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        //set up view binding and load layout
         try {
             binding = ActivityCategoriesExpensesBinding.inflate(layoutInflater)
             setContentView(binding.root)
@@ -41,7 +39,6 @@ class CategoryExpensesActivity : AppCompatActivity() {
             return
         }
 
-        //get Firebase Auth instance and check if user is logged in
         auth = FirebaseAuth.getInstance()
         if (auth.currentUser == null) {
             Log.w("CategoryExpensesActivity", "No user logged in, redirecting to AuthActivity")
@@ -55,7 +52,6 @@ class CategoryExpensesActivity : AppCompatActivity() {
             finish()
         }
 
-        //get category and date range from intent extras
         category = intent.getStringExtra("category")?.trim() ?: ""
         startDate = intent.getLongExtra("startDate", -1).takeIf { it != -1L }
         endDate = intent.getLongExtra("endDate", -1).takeIf { it != -1L }
@@ -67,7 +63,7 @@ class CategoryExpensesActivity : AppCompatActivity() {
             return
         }
 
-        binding.tvTitle.text = "$category Entries"
+        binding.tvTitle.text = "$category Expenses"
 
         setupRecyclerView()
         setupBottomNavigation()
@@ -84,7 +80,6 @@ class CategoryExpensesActivity : AppCompatActivity() {
         }
     }
 
-    //shows list of expenses
     private fun setupRecyclerView() {
         expenseAdapter = ExpenseAdapter(mutableListOf()) { expense ->
             try {
@@ -108,7 +103,6 @@ class CategoryExpensesActivity : AppCompatActivity() {
         Log.d("CategoryExpensesActivity", "RecyclerView set up")
     }
 
-    //sets up bottom navigation
     private fun setupBottomNavigation() {
         binding.bottomNav.selectedItemId = R.id.nav_categories
         binding.bottomNav.setOnItemSelectedListener { item ->
@@ -138,21 +132,36 @@ class CategoryExpensesActivity : AppCompatActivity() {
         }
     }
 
-    //gets and shows expenses from database
     private fun loadExpenses() {
         lifecycleScope.launch {
             val userId = auth.currentUser?.uid ?: return@launch
             try {
                 val expenses = withContext(Dispatchers.IO) {
+                    // Fetch all expenses for the category
+                    val allExpenses = ExpenseRepository.getExpensesByCategory(userId, category)
                     if (startDate != null && endDate != null) {
-                        ExpenseRepository.getExpensesByCategoryAndDateRange(userId, category, startDate!!, endDate!!)
+                        // Filter by date range in code
+                        val startDateStr = dateFormat.format(Date(startDate!!))
+                        val endDateStr = dateFormat.format(Date(endDate!!))
+                        Log.d("CategoryExpensesActivity", "Filtering by date range: $startDateStr to $endDateStr")
+                        allExpenses.filter { expense ->
+                            try {
+                                val expenseDate = dateFormat.parse(expense.date) ?: return@filter false
+                                val start = dateFormat.parse(startDateStr) ?: return@filter false
+                                val end = dateFormat.parse(endDateStr) ?: return@filter false
+                                expenseDate in start..end
+                            } catch (e: Exception) {
+                                Log.e("CategoryExpensesActivity", "Error parsing date ${expense.date}: $e")
+                                false
+                            }
+                        }
                     } else {
-                        ExpenseRepository.getExpensesByCategory(userId, category)
+                        allExpenses
                     }
                 }.toMutableList()
 
                 expenseAdapter.updateExpenses(expenses)
-                Log.d("CategoryExpensesActivity", "Loaded expenses: ${expenses.map { it.id }}")
+                Log.d("CategoryExpensesActivity", "Loaded ${expenses.size} expenses: ${expenses.map { it.id }}")
 
                 if (expenses.isEmpty()) {
                     Toast.makeText(this@CategoryExpensesActivity, "No expenses found in selected range", Toast.LENGTH_SHORT).show()
