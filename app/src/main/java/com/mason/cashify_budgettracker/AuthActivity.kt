@@ -71,10 +71,22 @@ class AuthActivity : AppCompatActivity() {
             val username = binding.signupUsername.text.toString().trim()
             val email = binding.signupEmail.text.toString().trim()
             val password = binding.signupPassword.text.toString().trim()
+
             if (username.isEmpty() || email.isEmpty() || password.isEmpty()) {
                 Toast.makeText(this, "Please fill all fields", Toast.LENGTH_SHORT).show()
                 return@setOnClickListener
             }
+
+            if (username.length > 8) {
+                Toast.makeText(this, "Username must be 8 characters or less", Toast.LENGTH_SHORT).show()
+                return@setOnClickListener
+            }
+
+            if (password.length <= 6) {
+                Toast.makeText(this, "Password must be more than 6 characters", Toast.LENGTH_SHORT).show()
+                return@setOnClickListener
+            }
+
             signupUser(email, password, username)
         }
     }
@@ -96,7 +108,7 @@ class AuthActivity : AppCompatActivity() {
                     startActivity(Intent(this, MainActivity::class.java))
                     finish()
                 } else {
-                    Toast.makeText(this, "Login failed: ${task.exception?.message}", Toast.LENGTH_SHORT).show()
+                    Toast.makeText(this, "Login failed: Please enter the correct email and password", Toast.LENGTH_SHORT).show()
                     Log.e("AuthActivity", "Login failed", task.exception)
                 }
             }

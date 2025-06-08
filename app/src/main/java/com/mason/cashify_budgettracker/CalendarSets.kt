@@ -44,6 +44,8 @@ import java.util.Date
 import com.google.firebase.auth.FirebaseAuth
 import java.text.SimpleDateFormat
 import java.util.Locale
+import androidx.core.content.ContextCompat
+
 
 class CalendarSets : AppCompatActivity() {
 
@@ -68,7 +70,6 @@ class CalendarSets : AppCompatActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        enableEdgeToEdge()
         //set padding to handle system bars (status/navigation) dynamically
         setContentView(R.layout.activity_calendar_sets)
         ViewCompat.setOnApplyWindowInsetsListener(findViewById(R.id.main)) { v, insets ->

@@ -47,7 +47,7 @@
             android:id="@+id/sloganText"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="Save Smart, Spend Wise"
+            android:text="Save Smart, Spend Wise."
             android:textAppearance="@style/TextAppearance.MaterialComponents.Subtitle1"
             android:textStyle="italic"
             android:textSize="20sp"

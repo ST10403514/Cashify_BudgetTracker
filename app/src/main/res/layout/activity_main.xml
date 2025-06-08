@@ -40,71 +40,79 @@
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent"/>
 
-    <!-- Chip group -->
-    <com.google.android.material.chip.ChipGroup
-        android:id="@+id/chipGroup"
+    <!-- Horizontal scrolling for chips-->
+    <HorizontalScrollView
+        android:id="@+id/chipScrollView"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
-        app:chipSpacingHorizontal="8dp"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@id/currencySpinner"
         android:layout_marginTop="15dp"
-        app:singleSelection="true">
+        android:scrollbars="none"
+        android:fillViewport="true"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/currencySpinner">
 
-        <!-- All chip -->
-        <com.google.android.material.chip.Chip
-            android:id="@+id/chipAll"
-            style="@style/Widget.Material3.Chip.Filter"
+        <com.google.android.material.chip.ChipGroup
+            android:id="@+id/chipGroup"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:minWidth="80dp"
-            android:text="All"
-            android:textAlignment="center"
-            app:checkedIconEnabled="false"
-            app:chipBackgroundColor="@color/chip_background"
-            app:chipMinTouchTargetSize="48dp" />
+            app:chipSpacingHorizontal="8dp"
+            app:singleSelection="true">
 
-        <!-- Income chip -->
-        <com.google.android.material.chip.Chip
-            android:id="@+id/chipIncome"
-            style="@style/Widget.Material3.Chip.Filter"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:minWidth="80dp"
-            android:text="Incomes"
-            android:textAlignment="center"
-            app:checkedIconEnabled="false"
-            app:chipBackgroundColor="@color/chip_background"
-            app:chipMinTouchTargetSize="48dp" />
+            <!-- All chip -->
+            <com.google.android.material.chip.Chip
+                android:id="@+id/chipAll"
+                style="@style/Widget.Material3.Chip.Filter"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:minWidth="80dp"
+                android:text="All"
+                android:textAlignment="center"
+                app:checkedIconEnabled="false"
+                app:chipBackgroundColor="@color/chip_background"
+                app:chipMinTouchTargetSize="48dp" />
 
-        <!-- Expense Chip -->
-        <com.google.android.material.chip.Chip
-            android:id="@+id/chipExpenses"
-            style="@style/Widget.Material3.Chip.Filter"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:minWidth="80dp"
-            android:text="Expenses"
-            android:textAlignment="center"
-            app:checkedIconEnabled="false"
-            app:chipBackgroundColor="@color/chip_background"
-            app:chipMinTouchTargetSize="48dp" />
+            <!-- Income chip -->
+            <com.google.android.material.chip.Chip
+                android:id="@+id/chipIncome"
+                style="@style/Widget.Material3.Chip.Filter"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:minWidth="80dp"
+                android:text="Incomes"
+                android:textAlignment="center"
+                app:checkedIconEnabled="false"
+                app:chipBackgroundColor="@color/chip_background"
+                app:chipMinTouchTargetSize="48dp" />
 
-        <!-- Pick Date chip -->
-        <com.google.android.material.chip.Chip
-            android:id="@+id/chipDay"
-            style="@style/Widget.Material3.Chip.Filter"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:minWidth="80dp"
-            android:text="Pick Date"
-            android:textAlignment="center"
-            app:checkedIconEnabled="false"
-            app:chipBackgroundColor="@color/chip_background"
-            app:chipMinTouchTargetSize="48dp" />
+            <!-- Expense Chip -->
+            <com.google.android.material.chip.Chip
+                android:id="@+id/chipExpenses"
+                style="@style/Widget.Material3.Chip.Filter"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:minWidth="80dp"
+                android:text="Expenses"
+                android:textAlignment="center"
+                app:checkedIconEnabled="false"
+                app:chipBackgroundColor="@color/chip_background"
+                app:chipMinTouchTargetSize="48dp" />
 
-    </com.google.android.material.chip.ChipGroup>
+            <!-- Pick Date chip -->
+            <com.google.android.material.chip.Chip
+                android:id="@+id/chipDay"
+                style="@style/Widget.Material3.Chip.Filter"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:minWidth="80dp"
+                android:text="Pick Date"
+                android:textAlignment="center"
+                app:checkedIconEnabled="false"
+                app:chipBackgroundColor="@color/chip_background"
+                app:chipMinTouchTargetSize="48dp" />
+
+        </com.google.android.material.chip.ChipGroup>
+    </HorizontalScrollView>
 
 
     <!-- Expenses display -->
@@ -115,10 +123,10 @@
         android:layout_marginTop="10dp"
         android:layout_marginBottom="10dp"
         android:background="@android:color/white"
+        app:layout_constraintTop_toBottomOf="@id/chipScrollView"
         app:layout_constraintBottom_toTopOf="@id/tvBalance"
-        app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@id/chipGroup" />
+        app:layout_constraintEnd_toEndOf="parent" />
 
     <!-- Balance text -->
     <TextView

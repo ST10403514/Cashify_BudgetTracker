@@ -153,7 +153,9 @@ class AddExpenseActivity : AppCompatActivity() {
                     true
                 }
                 R.id.nav_categories -> {
-                    Log.d("AddExpenseActivity", "Add tab selected")
+                    Log.d("AddExpenseActivity", "Navigating to CategoriesActivity")
+                    startActivity(Intent(this, CategoriesActivity::class.java))
+                    finish()
                     true
                 }
                 R.id.nav_goals -> {

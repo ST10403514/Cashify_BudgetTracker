@@ -166,7 +166,9 @@ class AddGoalActivity : AppCompatActivity() {
                     true
                 }
                 R.id.nav_goals -> {
-                    Log.d("AddGoalActivity", "Goals tab selected")
+                    Log.d("AddGoalActivity", "Navigating to GoalsActivity")
+                    startActivity(Intent(this, GoalsActivity::class.java))
+                    finish()
                     true
                 }
                 R.id.nav_calendar -> {

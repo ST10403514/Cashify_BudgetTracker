@@ -68,7 +68,7 @@ class MainActivity : AppCompatActivity() {
         }
 
         val username = auth.currentUser?.email?.substringBefore("@") ?: "User"
-        binding.tvWelcome.text = "Welcome @$username"
+        binding.tvWelcome.text = "Welcome $username!"
         Log.d("MainActivity", "Username set: $username")
 
         //initialize expense adapter with click listener for photos
