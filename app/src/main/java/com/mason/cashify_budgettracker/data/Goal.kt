@@ -3,6 +3,7 @@ package com.mason.cashify_budgettracker.data
 
 import com.google.firebase.firestore.PropertyName
 
+//goal entry in firestore
 data class Goal(
     @PropertyName("id") val id: String = "",
     @PropertyName("userId") val userId: String = "",

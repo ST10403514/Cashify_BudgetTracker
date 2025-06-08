@@ -22,13 +22,27 @@ class AuthActivity : AppCompatActivity() {
     private lateinit var binding: ActivityAuthBinding
     private lateinit var auth: FirebaseAuth
 
+    /*
+          -------------------------------------------------------------------------
+          Title: Add Firebase to your Android project
+          Author: Google Developers
+          Date Published: 2023
+          Date Accessed: 2 May 2025
+          Code Version: 11.0.0.
+          Availability: https://firebase.google.com/docs/android/setup
+          -------------------------------------------------------------------------
+     */
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        //inflate the layout using View Binding
         binding = ActivityAuthBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
+        //initialize FirebaseAuth instance
         auth = FirebaseAuth.getInstance()
 
+        //toggle between Login and Signup layouts
         binding.toggleButton.setOnClickListener {
             if (binding.loginLayout.visibility == android.view.View.VISIBLE) {
                 binding.loginLayout.visibility = android.view.View.GONE
@@ -41,6 +55,7 @@ class AuthActivity : AppCompatActivity() {
             }
         }
 
+        //handle login button click
         binding.btnLogin.setOnClickListener {
             val email = binding.loginUsername.text.toString().trim()
             val password = binding.loginPassword.text.toString().trim()
@@ -51,6 +66,7 @@ class AuthActivity : AppCompatActivity() {
             loginUser(email, password)
         }
 
+        //handle signup button click
         binding.btnSignup.setOnClickListener {
             val username = binding.signupUsername.text.toString().trim()
             val email = binding.signupEmail.text.toString().trim()
@@ -63,11 +79,13 @@ class AuthActivity : AppCompatActivity() {
         }
     }
 
+    //function to log in user using FirebaseAuth
     private fun loginUser(email: String, password: String) {
         Log.d("AuthActivity", "Attempting login with email: $email")
         auth.signInWithEmailAndPassword(email, password)
             .addOnCompleteListener(this) { task ->
                 if (task.isSuccessful) {
+                    //get current user ID after successful login
                     val userId = auth.currentUser?.uid ?: run {
                         Toast.makeText(this, "Failed to get user ID", Toast.LENGTH_SHORT).show()
                         Log.e("AuthActivity", "No user ID after login")
@@ -84,10 +102,12 @@ class AuthActivity : AppCompatActivity() {
             }
     }
 
+    //function to sign up new user with FirebaseAuth and Firestore
     private fun signupUser(email: String, password: String, username: String) {
         Log.d("AuthActivity", "Attempting signup with email: $email, username: $username")
         lifecycleScope.launch {
             try {
+                //check if username already exists in the repository
                 val existingUser = withContext(Dispatchers.IO) {
                     UserRepository.getUserByUsername(username)
                 }
@@ -97,6 +117,7 @@ class AuthActivity : AppCompatActivity() {
                     return@launch
                 }
 
+                //create user with FirebaseAuth
                 auth.createUserWithEmailAndPassword(email, password)
                     .addOnCompleteListener(this@AuthActivity) { task ->
                         if (task.isSuccessful) {
@@ -120,6 +141,7 @@ class AuthActivity : AppCompatActivity() {
                                     Log.d("AuthActivity", "User signed up and saved to Firestore: $username, id: $userId")
                                     Toast.makeText(this@AuthActivity, "Signup successful, please login", Toast.LENGTH_SHORT).show()
 
+                                    //switch to login layout after signup
                                     binding.loginLayout.visibility = android.view.View.VISIBLE
                                     binding.signupLayout.visibility = android.view.View.GONE
                                     binding.toggleButton.text = "Switch to Signup"

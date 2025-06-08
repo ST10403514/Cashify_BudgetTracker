@@ -28,11 +28,11 @@ class ViewPhotoActivity : AppCompatActivity() {
             return
         }
 
-        //Retrieve photo path passed through intent
+        //retrieve photo path passed through intent
         val photoPath = intent.getStringExtra("photoPath")
         Log.d("ViewPhotoActivity", "Received photoPath: $photoPath")
 
-        //Check if photo path is empty or null
+        //check if photo path is empty or null
         if (photoPath.isNullOrEmpty()) {
             Log.w("ViewPhotoActivity", "No photo path provided")
             Toast.makeText(this, "No photo available", Toast.LENGTH_SHORT).show()
@@ -40,22 +40,22 @@ class ViewPhotoActivity : AppCompatActivity() {
             return
         }
 
-        //Try to open photo file and display it
+        //try to open photo file and display it
         try {
             contentResolver.openInputStream(android.net.Uri.parse(photoPath))?.use { inputStream ->
-                //Decode input stream into a Bitmap and display it
+                //decode input stream into a Bitmap and display it
                 val bitmap = BitmapFactory.decodeStream(inputStream)
                 binding.ivFullPhoto.setImageBitmap(bitmap)
                 Log.d("ViewPhotoActivity", "Displayed photo: $photoPath")
             } ?: throw Exception("Failed to open input stream for URI")
         } catch (e: Exception) {
-            //Handle errors when loading photo
+            //handle errors when loading photo
             Log.e("ViewPhotoActivity", "Error loading photo: $e")
             Toast.makeText(this, "Error loading photo", Toast.LENGTH_SHORT).show()
             finish()
         }
 
-        //Set up back button listener
+        //set up back button listener
         binding.btnBack.setOnClickListener {
             Log.d("ViewPhotoActivity", "Back button clicked")
             finish()

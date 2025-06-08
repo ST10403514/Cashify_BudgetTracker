@@ -46,6 +46,7 @@ class MainActivity : AppCompatActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        //inflate layout and set content view
         try {
             binding = ActivityMainBinding.inflate(layoutInflater)
             setContentView(binding.root)
@@ -57,6 +58,7 @@ class MainActivity : AppCompatActivity() {
             return
         }
 
+        //initialize Firebase Authentication
         auth = FirebaseAuth.getInstance()
         if (auth.currentUser == null) {
             Log.w("MainActivity", "No user logged in, redirecting to AuthActivity")
@@ -69,6 +71,7 @@ class MainActivity : AppCompatActivity() {
         binding.tvWelcome.text = "Welcome @$username"
         Log.d("MainActivity", "Username set: $username")
 
+        //initialize expense adapter with click listener for photos
         expenseAdapter = ExpenseAdapter(mutableListOf()) { expense ->
             if (expense.photoPath.isNotEmpty()) {
                 val intent = Intent(this, ViewPhotoActivity::class.java).apply {
@@ -83,16 +86,7 @@ class MainActivity : AppCompatActivity() {
             adapter = expenseAdapter
         }
 
-        lifecycleScope.launch {
-            try {
-                loadExpenses()
-                Log.d("MainActivity", "Expenses loaded")
-            } catch (e: Exception) {
-                Log.e("MainActivity", "Error loading expenses: $e")
-                Toast.makeText(this@MainActivity, "Error accessing data", Toast.LENGTH_SHORT).show()
-            }
-        }
-
+        //setup filter chips listener for expense type and date filtering
         binding.chipGroup.setOnCheckedChangeListener { group, checkedId ->
             when (group.findViewById<Chip>(checkedId)?.id) {
                 R.id.chipAll -> {
@@ -146,6 +140,7 @@ class MainActivity : AppCompatActivity() {
             startActivity(Intent(this, AddExpenseActivity::class.java))
         }
 
+        //set up bottom nav
         binding.bottomNav.setOnItemSelectedListener { item ->
             val currentTime = System.currentTimeMillis()
             if (currentTime - lastNavClickTime < navDebounceDelay) {
@@ -168,14 +163,14 @@ class MainActivity : AppCompatActivity() {
                     startActivity(Intent(this, GoalsActivity::class.java))
                     true
                 }
-                R.id.nav_calendar -> {
-                    Log.d("MainActivity", "Navigating to CalendarSets")
-                    startActivity(Intent(this, CalendarSets::class.java))
-                    true
-                }
                 R.id.nav_reports -> {
                     Log.d("MainActivity", "Navigating to ReportsActivity")
                     startActivity(Intent(this, ReportsActivity::class.java))
+                    true
+                }
+                R.id.nav_calendar -> {
+                    Log.d("MainActivity", "Navigating to CalendarSets")
+                    startActivity(Intent(this, CalendarSets::class.java))
                     true
                 }
                 else -> {
@@ -204,6 +199,7 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
+    //shows date range picker for filtering expenses by dat
     private fun showDateRangePicker() {
         val datePicker = MaterialDatePicker.Builder.dateRangePicker()
             .setTitleText("Select Date Range")
@@ -227,6 +223,7 @@ class MainActivity : AppCompatActivity() {
         datePicker.show(supportFragmentManager, "DATE_RANGE_PICKER")
     }
 
+    //loads expenses from database, applies filters and currency conversion, updates UI
     private fun loadExpenses() {
         lifecycleScope.launch {
             try {
@@ -246,20 +243,25 @@ class MainActivity : AppCompatActivity() {
                     }
                 }
 
-                // Apply currency conversion if exchange rate available, else use original amounts
+                //apply currency conversion if exchange rate available, else use original amounts
                 val convertedExpenses = expenses.map { expense ->
                     expense.copy(amount = CurrencyConverter.convertAmount(expense.amount))
                 }
 
                 expenseAdapter.updateExpenses(convertedExpenses)
+
+                if (convertedExpenses.isEmpty()) {
+                    Toast.makeText(this@MainActivity, "No expenses found", Toast.LENGTH_SHORT).show()
+                }
+
                 Log.d("MainActivity", "Fetched expenses (converted): ${convertedExpenses.map { it.id }}")
 
-                // Calculate balance in selected currency
+                //calculate balance in selected currency
                 val balance = convertedExpenses.sumOf { expense ->
                     if (expense.type == "income") expense.amount else -expense.amount
                 }
 
-                // Format the balance with currency symbol
+                //format the balance with currency symbol
                 val currencySymbol = CurrencyConverter.getCurrencySymbol()
                 val selectedCurrency = CurrencyConverter.getSelectedCurrency()
                 binding.tvBalance.text = "Balance: $currencySymbol${DecimalFormat("0.00").format(balance)}"
@@ -271,6 +273,7 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
+    //fetches currency exchange rates from API and updates conversion rates
     private fun fetchExchangeRatesAndUpdate() {
         lifecycleScope.launch {
             try {
@@ -292,7 +295,7 @@ class MainActivity : AppCompatActivity() {
 
                 if (rates != null) {
                     CurrencyConverter.setExchangeRates(rates)
-                    loadExpenses() // call your function to reload and convert expenses display
+                    loadExpenses()
                 } else {
                     Toast.makeText(this@MainActivity, "Failed to get exchange rates", Toast.LENGTH_SHORT).show()
                 }
@@ -302,6 +305,8 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
+
+    //parses JSON response from currency API to get exchange rates
     private fun parseRatesFromJson(jsonString: String): Map<String, Double> {
         val jsonObject = JSONObject(jsonString)
         val data = jsonObject.getJSONObject("data")

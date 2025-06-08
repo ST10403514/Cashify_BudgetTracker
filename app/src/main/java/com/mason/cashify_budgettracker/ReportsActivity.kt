@@ -22,6 +22,7 @@ import com.github.mikephil.charting.data.LineDataSet
 import com.github.mikephil.charting.data.CombinedData
 import com.github.mikephil.charting.formatter.IndexAxisValueFormatter
 import com.google.firebase.auth.FirebaseAuth
+import com.google.android.material.datepicker.MaterialDatePicker
 import com.mason.cashify_budgettracker.data.ExpenseRepository
 import com.mason.cashify_budgettracker.data.Goal
 import com.mason.cashify_budgettracker.data.GoalRepository
@@ -43,6 +44,7 @@ class ReportsActivity : AppCompatActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        //set up view binding and load layout
         try {
             binding = ActivityReportsBinding.inflate(layoutInflater)
             setContentView(binding.root)
@@ -54,6 +56,7 @@ class ReportsActivity : AppCompatActivity() {
             return
         }
 
+        //initialise authentication
         auth = FirebaseAuth.getInstance()
         if (auth.currentUser == null) {
             Log.w("ReportsActivity", "No user logged in")
@@ -62,7 +65,7 @@ class ReportsActivity : AppCompatActivity() {
             return
         }
 
-        // Setup bottom navigation
+        //set up bottom navigation
         binding.bottomNav.setOnItemSelectedListener { item ->
             val currentTime = System.currentTimeMillis()
             if (currentTime - lastNavClickTime < navDebounceDelay) {
@@ -86,13 +89,13 @@ class ReportsActivity : AppCompatActivity() {
                     startActivity(Intent(this, GoalsActivity::class.java))
                     true
                 }
+                R.id.nav_reports -> {
+                    Log.d("ReportsActivity", "Reports tab selected")
+                    true
+                }
                 R.id.nav_calendar -> {
                     Log.d("ReportsActivity", "Navigating to CalendarSets")
                     startActivity(Intent(this, CalendarSets::class.java))
-                    true
-                }
-                R.id.nav_reports -> {
-                    Log.d("ReportsActivity", "Reports tab selected")
                     true
                 }
                 else -> {
@@ -103,45 +106,62 @@ class ReportsActivity : AppCompatActivity() {
         }
         binding.bottomNav.menu.findItem(R.id.nav_reports)?.isChecked = true
 
-        setupPeriodSpinner()
+        setupPeriodChips()
     }
 
-    private fun setupPeriodSpinner() {
-        val adapter = ArrayAdapter.createFromResource(
-            this,
-            R.array.period_options,
-            android.R.layout.simple_spinner_item
-        )
-        adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item)
-        binding.spinnerPeriod.adapter = adapter
+    //sets up chip filters for selecting weekly, monthly, or custom report periods.
+    private fun setupPeriodChips() {
+        val chipGroup = binding.chipGroupPeriod
+        val customChip = binding.chipCustom
+        val originalCustomText = customChip.text.toString()
 
-        binding.spinnerPeriod.onItemSelectedListener = object : AdapterView.OnItemSelectedListener {
-            override fun onItemSelected(parent: AdapterView<*>, view: View?, position: Int, id: Long) {
-                when (position) {
-                    0 -> loadDataForPeriod("week")
-                    1 -> loadDataForPeriod("month")
-                    2 -> showDateRangePicker()
+        chipGroup.setOnCheckedChangeListener { group, checkedId ->
+            when (checkedId) {
+                R.id.chipWeek -> {
+                    loadDataForPeriod("week")
+                    customChip.text = originalCustomText
                 }
+                R.id.chipMonth -> {
+                    loadDataForPeriod("month")
+                    customChip.text = originalCustomText
+                }
+                R.id.chipCustom -> {
+                    showDateRangePicker { startDate, endDate ->
+                        // Format date range text
+                        val formattedRange = "${dateFormat.format(startDate.time)} - ${dateFormat.format(endDate.time)}"
+                        customChip.text = formattedRange
+                        loadDataForCustomRange(startDate, endDate)
+                    }
+                }
+                else -> { /* No chip selected or cleared, do nothing */ }
             }
-            override fun onNothingSelected(parent: AdapterView<*>) {}
+        }
+
+        //set default chip checked
+        chipGroup.check(R.id.chipWeek)
+        loadDataForPeriod("week")
+    }
+
+    //displays a date range picker and returns the selected start and end dates
+    private fun showDateRangePicker(onDateRangeSelected: (Calendar, Calendar) -> Unit) {
+        val builder = MaterialDatePicker.Builder.dateRangePicker()
+        builder.setTitleText("Select Date Range")
+        val picker = builder.build()
+
+        picker.show(supportFragmentManager, picker.toString())
+
+        picker.addOnPositiveButtonClickListener { selection ->
+            val startDateMillis = selection.first
+            val endDateMillis = selection.second
+
+            val startDate = Calendar.getInstance().apply { timeInMillis = startDateMillis ?: 0L }
+            val endDate = Calendar.getInstance().apply { timeInMillis = endDateMillis ?: 0L }
+
+            onDateRangeSelected(startDate, endDate)
         }
     }
 
-    private fun showDateRangePicker() {
-        val calendar = Calendar.getInstance()
-        DatePickerDialog(this, { _, year, month, day ->
-            val startDate = Calendar.getInstance().apply {
-                set(year, month, day)
-            }
-            DatePickerDialog(this, { _, endYear, endMonth, endDay ->
-                val endDate = Calendar.getInstance().apply {
-                    set(endYear, endMonth, endDay)
-                }
-                loadDataForCustomRange(startDate, endDate)
-            }, calendar.get(Calendar.YEAR), calendar.get(Calendar.MONTH), calendar.get(Calendar.DAY_OF_MONTH)).show()
-        }, calendar.get(Calendar.YEAR), calendar.get(Calendar.MONTH), calendar.get(Calendar.DAY_OF_MONTH)).show()
-    }
-
+    //loads transactions for the selected predefined time period
     private fun loadDataForPeriod(period: String) {
         val calendar = Calendar.getInstance()
         val endCalendar = Calendar.getInstance()
@@ -153,6 +173,7 @@ class ReportsActivity : AppCompatActivity() {
         loadDataForCustomRange(startCalendar, endCalendar)
     }
 
+    //loads and processes transaction and goal data for a custom date range
     private fun loadDataForCustomRange(startCalendar: Calendar, endCalendar: Calendar) {
         lifecycleScope.launch {
             try {
@@ -161,7 +182,7 @@ class ReportsActivity : AppCompatActivity() {
                 val endDate = endCalendar.time
                 val targetMonth = monthFormat.format(endDate)
 
-                // Load all transactions
+                //load all transactions
                 val transactions = withContext(Dispatchers.IO) {
                     ExpenseRepository.getExpenses(userId).filter {
                         try {
@@ -174,21 +195,21 @@ class ReportsActivity : AppCompatActivity() {
                     }
                 }
 
-                // Separate expenses and income
+                //separate expenses and income
                 val expenses = transactions.filter { it.type == "expense" }
                 val income = transactions.filter { it.type == "income" }
 
-                // Show toast if no transactions
+                //show toast if no transactions
                 if (expenses.isEmpty() && income.isEmpty()) {
                     Toast.makeText(this@ReportsActivity, "There are no transactions for this time period", Toast.LENGTH_SHORT).show()
                 }
 
-                // Load goals for the target month
+                //load goals for the target month
                 val goals = withContext(Dispatchers.IO) {
                     GoalRepository.getGoals(userId).filter { it.month == targetMonth }
                 }
 
-                // Group expenses and income by category
+                //group expenses and income by category
                 val categorySpends = expenses.groupBy { it.category }
                     .mapValues { entry ->
                         entry.value.sumOf { CurrencyConverter.convertAmount(it.amount) }
@@ -198,10 +219,10 @@ class ReportsActivity : AppCompatActivity() {
                         entry.value.sumOf { CurrencyConverter.convertAmount(it.amount) }
                     }
 
-                // Combine categories from expenses and income
+                //combine categories from expenses and income
                 val labels = (categorySpends.keys + categoryIncome.keys).distinct().sorted()
 
-                // Prepare expense and income chart data
+                //prepare expense and income chart data
                 val expenseEntries = labels.mapIndexed { index, category ->
                     BarEntry(index.toFloat() - 0.2f, categorySpends[category]?.toFloat() ?: 0f)
                 }
@@ -209,7 +230,7 @@ class ReportsActivity : AppCompatActivity() {
                     BarEntry(index.toFloat() + 0.2f, categoryIncome[category]?.toFloat() ?: 0f)
                 }
 
-                // Get min/max goals for charts (expense categories only)
+                //get min/max goals for charts (expense categories only)
                 val minGoals = mutableMapOf<String, Float>()
                 val maxGoals = mutableMapOf<String, Float>()
                 goals.forEach { goal ->
@@ -228,6 +249,7 @@ class ReportsActivity : AppCompatActivity() {
         }
     }
 
+    //configures and displays bar and line charts for income, expenses, and goals
     private fun updateSpendingChart(
         expenseEntries: List<BarEntry>,
         incomeEntries: List<BarEntry>,
@@ -237,17 +259,7 @@ class ReportsActivity : AppCompatActivity() {
     ) {
         val currencySymbol = CurrencyConverter.getCurrencySymbol()
 
-        // Expense bars
-        val expenseDataSet = BarDataSet(expenseEntries, "Expenses").apply {
-            color = android.graphics.Color.BLUE
-            valueFormatter = object : com.github.mikephil.charting.formatter.ValueFormatter() {
-                override fun getFormattedValue(value: Float): String {
-                    return String.format("%s%.2f", currencySymbol, value)
-                }
-            }
-        }
-
-        // Income bars
+        //income bars
         val incomeDataSet = BarDataSet(incomeEntries, "Income").apply {
             color = android.graphics.Color.GREEN
             valueFormatter = object : com.github.mikephil.charting.formatter.ValueFormatter() {
@@ -257,13 +269,23 @@ class ReportsActivity : AppCompatActivity() {
             }
         }
 
-        // Combine bar data
-        val barData = BarData(expenseDataSet, incomeDataSet).apply {
+        //expense bars
+        val expenseDataSet = BarDataSet(expenseEntries, "Expenses").apply {
+            color = android.graphics.Color.RED
+            valueFormatter = object : com.github.mikephil.charting.formatter.ValueFormatter() {
+                override fun getFormattedValue(value: Float): String {
+                    return String.format("%s%.2f", currencySymbol, value)
+                }
+            }
+        }
+
+        //combine bar data
+        val barData = BarData(incomeDataSet, expenseDataSet).apply {
             barWidth = 0.2f
             groupBars(-0.5f, 0.4f, 0.1f) // Start at -0.5, group width 0.4, gap 0.1
         }
 
-        // Min goal lines
+        //min goal lines
         val minLineEntries = labels.mapIndexed { index, category ->
             minGoals[category]?.takeIf { it > 0 }?.let {
                 listOf(
@@ -273,13 +295,13 @@ class ReportsActivity : AppCompatActivity() {
             } ?: emptyList()
         }.flatten()
         val minLineDataSet = LineDataSet(minLineEntries, "Min Goal").apply {
-            color = android.graphics.Color.MAGENTA
+            color = ContextCompat.getColor(this@ReportsActivity, R.color.purple_500)
             lineWidth = 2f
             setDrawCircles(false)
             setDrawValues(false)
         }
 
-        // Max goal lines
+        //max goal lines
         val maxLineEntries = labels.mapIndexed { index, category ->
             maxGoals[category]?.takeIf { it > 0 }?.let {
                 listOf(
@@ -289,13 +311,13 @@ class ReportsActivity : AppCompatActivity() {
             } ?: emptyList()
         }.flatten()
         val maxLineDataSet = LineDataSet(maxLineEntries, "Max Goal").apply {
-            color = android.graphics.Color.RED
+            color = ContextCompat.getColor(this@ReportsActivity, R.color.purple_800)
             lineWidth = 2f
             setDrawCircles(false)
             setDrawValues(false)
         }
 
-        // Combine data
+        //combine data
         val combinedData = CombinedData().apply {
             setData(barData)
             setData(LineData(minLineDataSet, maxLineDataSet))
@@ -308,7 +330,7 @@ class ReportsActivity : AppCompatActivity() {
                 position = XAxis.XAxisPosition.BOTTOM
                 setDrawGridLines(false)
                 granularity = 1f
-                labelRotationAngle = 45f
+                labelRotationAngle = 0f
             }
             axisLeft.apply {
                 axisMinimum = 0f
@@ -322,39 +344,39 @@ class ReportsActivity : AppCompatActivity() {
             axisRight.isEnabled = false
             description.isEnabled = false
             setExtraOffsets(20f, 20f, 20f, 20f)
-            // Enable and customize legend
             legend.isEnabled = true
-            legend.form = com.github.mikephil.charting.components.Legend.LegendForm.LINE
+            legend.form = com.github.mikephil.charting.components.Legend.LegendForm.SQUARE
             legend.textSize = 12f
             legend.horizontalAlignment = com.github.mikephil.charting.components.Legend.LegendHorizontalAlignment.LEFT
             legend.verticalAlignment = com.github.mikephil.charting.components.Legend.LegendVerticalAlignment.TOP
-            legend.xEntrySpace = 30f // Increased spacing between entries
-            legend.xOffset = 10f // Added left padding
+            legend.xEntrySpace = 30f
+            legend.xOffset = 10f
             animateY(1000)
             invalidate()
         }
     }
-
+    //displays a bar chart showing target vs. saved amounts for each goal
     private fun updateGoalsChart(labels: List<String>, minGoals: Map<String, Float>, maxGoals: Map<String, Float>) {
         val currencySymbol = CurrencyConverter.getCurrencySymbol()
-        // Min goal bars
+        //min goal bars
         val minEntries = labels.mapIndexed { index, category ->
             BarEntry(index.toFloat() - 0.2f, minGoals[category] ?: 0f)
         }
         val minDataSet = BarDataSet(minEntries, "Min Goals").apply {
-            color = android.graphics.Color.GREEN
+            color = ContextCompat.getColor(this@ReportsActivity, R.color.purple_500)
+
             valueFormatter = object : com.github.mikephil.charting.formatter.ValueFormatter() {
                 override fun getFormattedValue(value: Float): String {
                     return String.format("%s%.2f", currencySymbol, value)
                 }
             }
         }
-        // Max goal bars
+        //max goal bars
         val maxEntries = labels.mapIndexed { index, category ->
             BarEntry(index.toFloat() + 0.2f, maxGoals[category] ?: 0f)
         }
         val maxDataSet = BarDataSet(maxEntries, "Max Goals").apply {
-            color = android.graphics.Color.RED
+            color = ContextCompat.getColor(this@ReportsActivity, R.color.purple_800)
             valueFormatter = object : com.github.mikephil.charting.formatter.ValueFormatter() {
                 override fun getFormattedValue(value: Float): String {
                     return String.format("%s%.2f", currencySymbol, value)
@@ -373,7 +395,7 @@ class ReportsActivity : AppCompatActivity() {
                 position = XAxis.XAxisPosition.BOTTOM
                 setDrawGridLines(false)
                 granularity = 1f
-                labelRotationAngle = 45f
+                labelRotationAngle = 0f
             }
             axisLeft.apply {
                 axisMinimum = 0f
@@ -387,14 +409,13 @@ class ReportsActivity : AppCompatActivity() {
             axisRight.isEnabled = false
             description.isEnabled = false
             setExtraOffsets(20f, 20f, 20f, 20f)
-            // Enable and customize legend
             legend.isEnabled = true
             legend.form = com.github.mikephil.charting.components.Legend.LegendForm.SQUARE
             legend.textSize = 12f
             legend.horizontalAlignment = com.github.mikephil.charting.components.Legend.LegendHorizontalAlignment.LEFT
             legend.verticalAlignment = com.github.mikephil.charting.components.Legend.LegendVerticalAlignment.TOP
-            legend.xEntrySpace = 30f // Increased spacing between entries
-            legend.xOffset = 10f // Added left padding
+            legend.xEntrySpace = 30f
+            legend.xOffset = 10f
             animateY(1000)
             invalidate()
         }

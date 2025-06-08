@@ -16,7 +16,7 @@
     <string-array name="period_options">
         <item>Last Week</item>
         <item>Last Month</item>
-        <item>Custom Range</item>
+        <item>Pick Date</item>
     </string-array>
     </resources>
 

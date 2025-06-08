@@ -33,6 +33,7 @@ import java.util.*
 
 class AddExpenseActivity : AppCompatActivity() {
 
+    //UI binding and Firebase auth
     private lateinit var binding: ActivityAddExpenseBinding
     private lateinit var auth: FirebaseAuth
     private var photoUri: Uri? = null
@@ -40,6 +41,7 @@ class AddExpenseActivity : AppCompatActivity() {
     private val defaultCategories = listOf("Food", "Transport", "Entertainment", "Bills", "Other")
     private val calendar = Calendar.getInstance()
 
+    //launcher for selecting image from gallery
     private val galleryLauncher = registerForActivityResult(ActivityResultContracts.PickVisualMedia()) { uri: Uri? ->
         Log.d("AddExpenseActivity", "Gallery result: uri=$uri")
         if (uri != null) {
@@ -117,6 +119,7 @@ class AddExpenseActivity : AppCompatActivity() {
             }
         }
 
+        //setup dropdown for categories
         val categoryAdapter = ArrayAdapter(this, android.R.layout.simple_dropdown_item_1line, categories)
         (binding.categoryInput as MaterialAutoCompleteTextView).setAdapter(categoryAdapter)
         binding.categoryInput.setOnClickListener {
@@ -140,6 +143,7 @@ class AddExpenseActivity : AppCompatActivity() {
             saveExpense()
         }
 
+        //bottom navigation handling
         binding.bottomNav.setOnItemSelectedListener { item ->
             when (item.itemId) {
                 R.id.nav_home -> {
@@ -181,6 +185,7 @@ class AddExpenseActivity : AppCompatActivity() {
         Log.d("AddExpenseActivity", "onSaveInstanceState: Saved photoUri")
     }
 
+    //create file for storing picked photo
     private fun createPhotoFile(): File {
         val timeStamp = SimpleDateFormat("yyyyMMdd_HHmmss", Locale.getDefault()).format(Date())
         val storageDir = File(filesDir, "photos")
@@ -188,6 +193,7 @@ class AddExpenseActivity : AppCompatActivity() {
         return File(storageDir, "JPEG_${timeStamp}.jpg")
     }
 
+    //setup date and time pickers
     private fun setupDateTimePickers() {
         binding.dateInput.setOnClickListener {
             val year = calendar.get(Calendar.YEAR)
@@ -224,6 +230,7 @@ class AddExpenseActivity : AppCompatActivity() {
         }
     }
 
+    //load categories from DB or default
     private fun loadCategories() {
         lifecycleScope.launch {
             try {
@@ -245,6 +252,7 @@ class AddExpenseActivity : AppCompatActivity() {
         }
     }
 
+    //show dialog to add a new category
     private fun showAddCategoryDialog() {
         try {
             val builder = AlertDialog.Builder(this)
@@ -283,6 +291,7 @@ class AddExpenseActivity : AppCompatActivity() {
         }
     }
 
+    //validate inputs and save expense to DB
     private fun saveExpense() {
         val category = binding.categoryInput.text.toString().trim()
         val type = if (binding.radioIncome.isChecked) "income" else "expense"

@@ -40,6 +40,7 @@ class AddGoalActivity : AppCompatActivity() {
     private val categories = mutableListOf<String>()
     private val defaultCategories = listOf("Food", "Transport", "Entertainment", "Bills", "Other")
 
+    //launcher for requesting storage permission
     private val permissionLauncher = registerForActivityResult(ActivityResultContracts.RequestPermission()) { isGranted ->
         if (isGranted) {
             Log.d("AddGoalActivity", "Storage permission granted, launching gallery")
@@ -50,6 +51,7 @@ class AddGoalActivity : AppCompatActivity() {
         }
     }
 
+    //launcher for selecting an image from the gallery
     private val galleryLauncher = registerForActivityResult(ActivityResultContracts.GetContent()) { uri: Uri? ->
         if (uri != null) {
             try {
@@ -86,6 +88,7 @@ class AddGoalActivity : AppCompatActivity() {
             return
         }
 
+        //initialize Firebase Auth and check if user is logged in
         auth = FirebaseAuth.getInstance()
         if (auth.currentUser == null) {
             Log.w("AddGoalActivity", "No user logged in, redirecting to AuthActivity")
@@ -99,6 +102,7 @@ class AddGoalActivity : AppCompatActivity() {
             finish()
         }
 
+        //restore photo path on configuration changes
         if (savedInstanceState != null) {
             photoPath = savedInstanceState.getString("photoPath")
             if (photoPath != null) {
@@ -119,6 +123,7 @@ class AddGoalActivity : AppCompatActivity() {
             }
         }
 
+        //setup category dropdown adapter
         val categoryAdapter = ArrayAdapter(this, android.R.layout.simple_dropdown_item_1line, categories)
         (binding.categoryInput as MaterialAutoCompleteTextView).setAdapter(categoryAdapter)
         binding.categoryInput.setOnClickListener {
@@ -145,6 +150,7 @@ class AddGoalActivity : AppCompatActivity() {
             saveGoal()
         }
 
+        //setup bottom navigation
         binding.bottomNav.setOnItemSelectedListener { item ->
             when (item.itemId) {
                 R.id.nav_home -> {
@@ -179,12 +185,14 @@ class AddGoalActivity : AppCompatActivity() {
         binding.bottomNav.menu.findItem(R.id.nav_goals)?.isChecked = true
     }
 
+    //save photo path to instance state bundle on config change
     override fun onSaveInstanceState(outState: Bundle) {
         super.onSaveInstanceState(outState)
         outState.putString("photoPath", photoPath)
         Log.d("AddGoalActivity", "onSaveInstanceState: Saved photoPath")
     }
 
+    //show a date picker dialog limited to month/year selection
     private fun showMonthPicker() {
         val datePicker = MaterialDatePicker.Builder.datePicker()
             .setTitleText("Select Goal Month")
@@ -212,6 +220,7 @@ class AddGoalActivity : AppCompatActivity() {
         datePicker.show(supportFragmentManager, "MONTH_PICKER")
     }
 
+    //check and request storage permissions before opening gallery
     private fun checkPermissionsAndSelectPhoto() {
         val permission = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
             Manifest.permission.READ_MEDIA_IMAGES
@@ -234,6 +243,7 @@ class AddGoalActivity : AppCompatActivity() {
         }
     }
 
+    //show rationale dialog for storage permission
     private fun showPermissionRationale() {
         AlertDialog.Builder(this)
             .setTitle("Storage Permission Required")
@@ -254,11 +264,13 @@ class AddGoalActivity : AppCompatActivity() {
             .show()
     }
 
+    //launch the gallery to pick an image
     private fun launchGallery() {
         galleryLauncher.launch("image/*")
         Log.d("AddGoalActivity", "Gallery launched")
     }
 
+    //load categories from repository and update UI
     private fun loadCategories() {
         lifecycleScope.launch {
             try {
@@ -280,6 +292,7 @@ class AddGoalActivity : AppCompatActivity() {
         }
     }
 
+    //show dialog to add a new custom category
     private fun showAddCategoryDialog() {
         try {
             val builder = AlertDialog.Builder(this)
@@ -318,6 +331,7 @@ class AddGoalActivity : AppCompatActivity() {
         }
     }
 
+    //validate inputs and save the goal to the repository
     private fun saveGoal() {
         val month = binding.monthInput.text.toString().trim()
         val category = binding.categoryInput.text.toString().trim()
@@ -381,6 +395,7 @@ class AddGoalActivity : AppCompatActivity() {
         }
     }
 
+    //create a temporary file to store the selected image
     private fun createImageFile(): File {
         val timeStamp = SimpleDateFormat("yyyyMMdd_HHmmss", Locale.getDefault()).format(Date())
         val storageDir = getExternalFilesDir("photos")

@@ -12,32 +12,32 @@ import java.text.SimpleDateFormat
 import java.util.*
 import android.graphics.Color
 
-//Adapter for displaying Goal items in a RecyclerView
+//adapter for displaying Goal items in a RecyclerView
 class GoalAdapter : ListAdapter<GoalItem, GoalAdapter.GoalViewHolder>(GoalDiffCallback()) {
 
-    //Creates a new ViewHolder by inflating the item layout
+    //creates a new ViewHolder by inflating the item layout
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): GoalViewHolder {
         val binding = ItemGoalBinding.inflate(LayoutInflater.from(parent.context), parent, false)
         return GoalViewHolder(binding)
     }
 
-    //Binds data from GoalItem to ViewHolder at the specified position
+    //binds data from GoalItem to ViewHolder at the specified position
     override fun onBindViewHolder(holder: GoalViewHolder, position: Int) {
         holder.bind(getItem(position))
     }
 
-    //ViewHolder for holding goal item views and binding data
+    //viewHolder for holding goal item views and binding data
     class GoalViewHolder(private val binding: ItemGoalBinding) : RecyclerView.ViewHolder(binding.root) {
         //Formatting date and month using SimpleDateFormat
         private val monthFormat = SimpleDateFormat("MM/yyyy", Locale.getDefault())
         private val dateFormat = SimpleDateFormat("dd/MM/yyyy", Locale.getDefault())
 
-        //Binds a GoalItem to the corresponding views in the ViewHolder
+        //binds a GoalItem to the corresponding views in the ViewHolder
         fun bind(goalItem: GoalItem) {
             val goal = goalItem.goal
             val totalSpent = goalItem.totalSpent
 
-            //Setting values for each text view in the item layout
+            //setting values for each text view in the item layout
             binding.tvCategory.text = goal.category
             binding.tvDescription.text = goal.description.takeIf { it.isNotEmpty() } ?: "No description"
             binding.tvMonth.text = "Month: ${goal.month}"
@@ -52,7 +52,7 @@ class GoalAdapter : ListAdapter<GoalItem, GoalAdapter.GoalViewHolder>(GoalDiffCa
             binding.tvMinMax.text = "Min: $symbol${String.format("%.2f", convertedMin)} | Max: $symbol${String.format("%.2f", convertedMax)}"
             binding.tvAmountProgress.text = "Spent: $symbol${String.format("%.2f", convertedSpent)}"
 
-            //Conditionally load photo if it exists
+            //conditionally load photo if it exists
             if (goal.photoPath.isNotEmpty()) {
                 binding.ivPhoto.visibility = View.VISIBLE
                 Glide.with(binding.ivPhoto.context)
@@ -64,7 +64,7 @@ class GoalAdapter : ListAdapter<GoalItem, GoalAdapter.GoalViewHolder>(GoalDiffCa
                 binding.ivPhoto.visibility = View.GONE
             }
 
-            //cCalculating the progress based on the totalSpent and maxGoal
+            //calculating the progress based on the totalSpent and maxGoal
             val progress = when {
                 goal.maxGoal == 0.0 -> 0f
                 else -> {
@@ -74,7 +74,7 @@ class GoalAdapter : ListAdapter<GoalItem, GoalAdapter.GoalViewHolder>(GoalDiffCa
             }
             binding.progressBar.progress = progress.toInt()
 
-            //Setting status text and color based on goal type and progress
+            //setting status text and color based on goal type and progress
             when {
                 goal.type == "expense" && totalSpent > goal.maxGoal -> {
                     binding.tvStatus.text = "Over Goal"
@@ -97,15 +97,14 @@ class GoalAdapter : ListAdapter<GoalItem, GoalAdapter.GoalViewHolder>(GoalDiffCa
         }
     }
 
-
-    //DiffUtil callback to optimize list updates by comparing old and new GoalItem objects.
+    //diffUtil callback to optimize list updates by comparing old and new GoalItem objects.
     class GoalDiffCallback : DiffUtil.ItemCallback<GoalItem>() {
         //Check if two items represent the same goal item
         override fun areItemsTheSame(oldItem: GoalItem, newItem: GoalItem): Boolean {
             return oldItem.goal.id == newItem.goal.id
         }
 
-        //Check if content of two goal items are the same
+        //check if content of two goal items are the same
         override fun areContentsTheSame(oldItem: GoalItem, newItem: GoalItem): Boolean {
             return oldItem == newItem
         }

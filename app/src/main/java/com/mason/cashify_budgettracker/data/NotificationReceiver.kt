@@ -9,11 +9,13 @@ import android.os.Build
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
 
+//broadcastReceiver to handle and display scheduled budget reminders
 class NotificationReceiver : BroadcastReceiver() {
     override fun onReceive(context: Context, intent: Intent) {
         val title = intent.getStringExtra("title")
         val message = intent.getStringExtra("message") ?: "Today is your deadline's last day!"
 
+        //create notification channel for Android O and above
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             val channel = NotificationChannel(
                 "budget_reminders",
@@ -24,8 +26,9 @@ class NotificationReceiver : BroadcastReceiver() {
             notificationManager.createNotificationChannel(channel)
         }
 
+        //build and show the notification
         val notification = NotificationCompat.Builder(context, "budget_reminders")
-            .setSmallIcon(R.drawable.notification) // Replace with your icon
+            .setSmallIcon(R.drawable.notification)
             .setContentTitle(title)
             .setContentText(message)
             .setPriority(NotificationCompat.PRIORITY_HIGH)

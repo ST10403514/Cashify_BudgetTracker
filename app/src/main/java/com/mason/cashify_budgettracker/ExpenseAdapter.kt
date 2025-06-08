@@ -11,22 +11,22 @@ import com.mason.cashify_budgettracker.data.Expense
 import com.mason.cashify_budgettracker.databinding.ItemExpenseBinding
 
 
-//Adapter for displaying a list of expenses in RecyclerView
+//adapter for displaying a list of expenses in RecyclerView
 class ExpenseAdapter(
     private var expenses: MutableList<Expense>,
     private val onPhotoClick: (Expense) -> Unit
 ) : RecyclerView.Adapter<ExpenseAdapter.ExpenseViewHolder>() {
 
-    //ViewHolder class to hold references to views for each item in RecyclerView
+    //viewHolder class to hold references to views for each item in RecyclerView
     inner class ExpenseViewHolder(val binding: ItemExpenseBinding) : RecyclerView.ViewHolder(binding.root)
 
-    //Inflates layout for each item and creates ViewHolder
+    //inflates layout for each item and creates ViewHolder
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ExpenseViewHolder {
         val binding = ItemExpenseBinding.inflate(LayoutInflater.from(parent.context), parent, false)
         return ExpenseViewHolder(binding)
     }
 
-    //Binds data to ViewHolder (sets values for each item's UI components)
+    //binds data to ViewHolder (sets values for each item's UI components)
     override fun onBindViewHolder(holder: ExpenseViewHolder, position: Int) {
         val expense = expenses[position]  //Get expense at current position
         with(holder.binding) {
@@ -40,7 +40,7 @@ class ExpenseAdapter(
             tvDescription.text = expense.description
             tvTime.text = "${expense.startTime} - ${expense.endTime}"
 
-            //Load photo if available, else hide the photo view
+            //load photo if available, else hide the photo view
             if (expense.photoPath.isNotEmpty()) {
                 ivPhoto.visibility = View.VISIBLE
                 Glide.with(ivPhoto.context)
@@ -57,11 +57,11 @@ class ExpenseAdapter(
                 Log.d("ExpenseAdapter", "No photo for expense ${expense.id}")
             }
         }
-        //Log binding details for debugging purposes
+        //log binding details for debugging purposes
         Log.d("ExpenseAdapter", "Bound expense at position $position: $expense")
     }
 
-    //Returns total number of items in the list
+    //returns total number of items in the list
     override fun getItemCount(): Int = expenses.size
 
     //updates expense list and notifies adapter of data changes

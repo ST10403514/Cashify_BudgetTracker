@@ -29,6 +29,7 @@ class GoalsActivity : AppCompatActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        //set up view binding and load layout
         try {
             binding = ActivityGoalsBinding.inflate(layoutInflater)
             setContentView(binding.root)
@@ -40,6 +41,7 @@ class GoalsActivity : AppCompatActivity() {
             return
         }
 
+        //get Firebase Auth instance and check if user is logged in
         auth = FirebaseAuth.getInstance()
         if (auth.currentUser == null) {
             Log.w("GoalsActivity", "No user logged in, redirecting to AuthActivity")
@@ -50,22 +52,12 @@ class GoalsActivity : AppCompatActivity() {
 
         setupRecyclerView()
 
-        lifecycleScope.launch {
-            try {
-                loadGoals()
-                Log.d("GoalsActivity", "Goals loaded")
-            } catch (e: Exception) {
-                Log.e("GoalsActivity", "Error loading goals: $e")
-                Toast.makeText(this@GoalsActivity, "Error accessing data", Toast.LENGTH_SHORT).show()
-                finish()
-            }
-        }
-
         binding.btnAddGoal.setOnClickListener {
             Log.d("GoalsActivity", "Add New Goal clicked")
             startActivity(Intent(this, AddGoalActivity::class.java))
         }
 
+        //set up bottom nav
         binding.bottomNav.setOnItemSelectedListener { item ->
             when (item.itemId) {
                 R.id.nav_home -> {
@@ -84,17 +76,17 @@ class GoalsActivity : AppCompatActivity() {
                     Log.d("GoalsActivity", "Goals tab selected")
                     true
                 }
+                R.id.nav_reports -> {
+                    Log.d("MainActivity", "Navigating to ReportsActivity")
+                    startActivity(Intent(this, ReportsActivity::class.java))
+                    true
+                }
                 R.id.nav_calendar -> {
                     Log.d("GoalsActivity", "Navigating to CalendarSets")
                     startActivity(Intent(this, CalendarSets::class.java))
                     finish()
                     true
                 }
-                R.id.nav_reports -> {
-                Log.d("MainActivity", "Navigating to ReportsActivity")
-                startActivity(Intent(this, ReportsActivity::class.java))
-                true
-            }
 
                 else -> false
             }
@@ -102,6 +94,7 @@ class GoalsActivity : AppCompatActivity() {
         binding.bottomNav.menu.findItem(R.id.nav_goals)?.isChecked = true
     }
 
+    //sets up the goals list display.
     private fun setupRecyclerView() {
         goalAdapter = GoalAdapter()
         binding.rvGoals.apply {
@@ -111,6 +104,7 @@ class GoalsActivity : AppCompatActivity() {
         Log.d("GoalsActivity", "RecyclerView set up")
     }
 
+    //loads goals and calculates spent amounts
     private fun loadGoals() {
         lifecycleScope.launch {
             val userId = auth.currentUser?.uid ?: return@launch

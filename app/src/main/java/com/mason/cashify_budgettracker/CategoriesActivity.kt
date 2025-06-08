@@ -28,6 +28,7 @@ class CategoriesActivity : AppCompatActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        //inflate layout and set the content view
         try {
             binding = ActivityCategoriesBinding.inflate(layoutInflater)
             setContentView(binding.root)
@@ -39,6 +40,7 @@ class CategoriesActivity : AppCompatActivity() {
             return
         }
 
+        //initialize Firebase Authentication
         auth = FirebaseAuth.getInstance()
         if (auth.currentUser == null) {
             Log.w("CategoriesActivity", "No user logged in, redirecting to AuthActivity")
@@ -51,18 +53,9 @@ class CategoriesActivity : AppCompatActivity() {
         setupBottomNavigation()
         setupChipGroup()
 
-        lifecycleScope.launch {
-            try {
-                loadCategories()
-                Log.d("CategoriesActivity", "Categories loaded")
-            } catch (e: Exception) {
-                Log.e("CategoriesActivity", "Error loading categories: $e")
-                Toast.makeText(this@CategoriesActivity, "Error accessing data", Toast.LENGTH_SHORT).show()
-                finish()
-            }
-        }
     }
 
+    //shows list of categories
     private fun setupRecyclerView() {
         categoryAdapter = CategoryAdapter { categoryTotal ->
             try {
@@ -86,6 +79,7 @@ class CategoriesActivity : AppCompatActivity() {
         Log.d("CategoriesActivity", "RecyclerView set up")
     }
 
+    //setup bottom nav
     private fun setupBottomNavigation() {
         binding.bottomNav.selectedItemId = R.id.nav_categories
         binding.bottomNav.setOnItemSelectedListener { item ->
@@ -113,6 +107,11 @@ class CategoriesActivity : AppCompatActivity() {
                         false
                     }
                 }
+                R.id.nav_reports -> {
+                    Log.d("MainActivity", "Navigating to ReportsActivity")
+                    startActivity(Intent(this, ReportsActivity::class.java))
+                    true
+                }
                 R.id.nav_calendar -> {
                     try {
                         startActivity(Intent(this, CalendarSets::class.java))
@@ -124,16 +123,12 @@ class CategoriesActivity : AppCompatActivity() {
                         false
                     }
                 }
-                R.id.nav_reports -> {
-                    Log.d("MainActivity", "Navigating to ReportsActivity")
-                    startActivity(Intent(this, ReportsActivity::class.java))
-                    true
-                }
                 else -> false
             }
         }
     }
 
+    //sets up filter buttons for dates
     private fun setupChipGroup() {
         binding.chipGroup.setOnCheckedChangeListener { _, checkedId ->
             when (checkedId) {
@@ -152,6 +147,7 @@ class CategoriesActivity : AppCompatActivity() {
         }
     }
 
+    //shows date picker to choose a date range
     private fun showDateRangePicker() {
         val dateRangePicker = MaterialDatePicker.Builder.dateRangePicker()
             .setTitleText("Select Date Range")
@@ -182,6 +178,7 @@ class CategoriesActivity : AppCompatActivity() {
         dateRangePicker.show(supportFragmentManager, "DATE_RANGE_PICKER")
     }
 
+    //gets and shows categories from database
     private fun loadCategories() {
         lifecycleScope.launch {
             val userId = auth.currentUser?.uid ?: return@launch
