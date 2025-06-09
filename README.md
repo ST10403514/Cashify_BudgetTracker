@@ -17,25 +17,27 @@
 
 **Course**: BCAD Year 3  
 **Module**: Programming 3C (PROG7313)  
-**Assessment**: Portfolio of Evidence (POE) Part 2
+**Assessment**: Portfolio of Evidence (POE) Part 2 and Part 3
 
 ## Overview
 Cashify is an intuitive budget tracking app designed to empower users to manage their finances with clarity and ease. It promotes mindful spending by enabling users to track expenses, set category-specific goals, and analyze spending patterns. Key features include:
 
 - **Simple UI**: Clean, user-friendly interface for seamless navigation.
-- **Offline Access**: Local storage via RoomDB ensures functionality without internet.
 - **Secure Authentication**: User credentials stored securely for signup and login.
 - **Photo Support**: Attach and view photos (e.g., receipts) for expenses.
 - **Goal Tracking**: Set monthly minimum and maximum spending goals per category.
-- **Insightful Analytics**: View spending by category and track progress toward goals.
+- **Insightful Analytics**: Visualize spending and goal progress via charts.
+- **Cloud Storage**: Sync data online with Firebase Firestore, with offline support.
 
 Cashify is built for reliability, security, and responsiveness, making it ideal for daily financial management.
 
 ## Technologies Used
 - **Firebase Authentication**: Stores user credentials for secure signup and login.
-- **RoomDB**: Local database for offline expense, goal, and category storage.
+- **Firebase Firestore**: Cloud database for online storage of expenses, goals, and categories.
+- **RoomDB**: Local database for offline expense, goal, and category storage (Part 2).
+- **MPAndroidChart**: Library for rendering spending and goal charts.
 - **Android Studio**: Development environment (Kotlin, XML).
-- **Kotlin**: Primary programming language for logic and UI.
+- **Kotlin**: Primary programming language for logic and UI, with Coroutines for asynchronous tasks.
 - **XML**: Layout design for activities and fragments.
 - **Glide**: Efficient image loading for expense and goal photos.
 - **Material Design**: UI components for a modern look and feel.
@@ -47,7 +49,7 @@ Cashify is built for reliability, security, and responsiveness, making it ideal 
 - **Emulator**: Pixel 8 API 35 or Medium Phone API 33, or a physical Android device (API 24+).
 - **Git**: For cloning the repository.
 - **Disk Space**: At least 5GB free.
-- **Internet**: For Gradle sync.
+- **Internet**: For Gradle sync and Firebase connectivity.
 
 ### Installation
 
@@ -58,7 +60,10 @@ Cashify is built for reliability, security, and responsiveness, making it ideal 
 4. Select **File > New > Project from Version Control**.
 5. Paste the URL and click **Clone**.
 6. Wait for Gradle to sync (click **Sync Project with Gradle Files** if needed).
-7. Run the app:
+7. Configure Firebase:
+   - Download `google-services.json` from your Firebase project.
+   - Place it in the `app/` directory.
+8. Run the app:
    - Select an emulator (Pixel 8 API 35 or Medium Phone API 33) or connect a physical device.
    - Click **Run > Run 'app'**.
 
@@ -79,13 +84,17 @@ Cashify is built for reliability, security, and responsiveness, making it ideal 
 - **Gradle Sync Fails**:
   - Ensure internet connectivity.
   - Update Android Studio and Gradle plugins.
-  - Check `build.gradle` for correct dependencies (e.g., `com.github.bumptech.glide:glide:4.16.0`).
+  - Check `build.gradle` for correct dependencies (e.g., `com.github.PhilJay:MPAndroidChart:v3.1.0`, `com.google.firebase:firebase-firestore:25.1.0`).
+- **Firebase Errors**:
+  - Verify `google-services.json` is in `app/`.
+  - Ensure Firebase project has Firestore enabled.
+  - Check internet for Firebase Authentication and Firestore.
 - **Authentication Errors**:
   - Ensure internet connectivity for credential validation.
   - Clear app data via **Settings > Apps > Cashify > Storage > Clear Data**.
-- **RoomDB Issues**:
-  - Check database migrations (e.g., for `createdAt` in `goals` table).
-  - Clear app data to reset the database.
+- **Firestore Issues**:
+  - Check Firestore rules (e.g., `allow read, write: if request.auth.uid == userId;`).
+  - Ensure offline persistence is enabled (default in Firestore).
 - **Emulator Crashes**:
   - Use a compatible API (33 or 35).
   - Increase emulator RAM in **Device Manager**.
@@ -95,12 +104,14 @@ Cashify is built for reliability, security, and responsiveness, making it ideal 
 
 ## Features
 
-### User Registration and Authentication
+### Part 2: Core Features
+
+#### User Registration and Authentication
 - **Signup**: Create an account with username, email, and password.
 - **Login**: Access the app with email and password.
 - **Switching**: Toggle between signup and login pages.
 
-### Budget Entries
+#### Budget Entries
 - **Add Expense**:
   - Specify description, category, amount, type (income/expense), date (dd/MM/yyyy), start/end times, and optionally attach a photo (e.g., receipt).
   - Photos are clickable to view full-size.
@@ -108,13 +119,13 @@ Cashify is built for reliability, security, and responsiveness, making it ideal 
   - List all expenses with details (category, amount, date, time, photo).
   - Filter by user-selectable period (e.g., month, year).
 
-### Categories
+#### Categories
 - **Add Category**: Create custom categories for expenses (e.g., Food, Entertainment).
 - **View Spending**:
   - Display total spending per category for a selected period.
   - Visualize spending trends.
 
-### Goals
+#### Goals
 - **Set Goals**:
   - Define monthly minimum and maximum spending goals for categories (e.g., Entertainment: min R1000, max R2500).
   - Specify goal month (MM/yyyy) and optionally add a photo.
@@ -122,10 +133,49 @@ Cashify is built for reliability, security, and responsiveness, making it ideal 
   - View total spent, progress bar, and status (Below Goal, Within Budget, Over Budget).
   - Expenses in the goal’s month contribute to `totalSpent` (e.g., 550/2500).
 
-### Other
+#### Other
 - **Local Storage**: All data (expenses, goals, categories) stored in RoomDB for offline access.
 - **Photo Support**: Efficient image loading with Glide; placeholders for missing/invalid photos.
 - **Responsive UI**: Material Design components and bottom navigation for seamless interaction.
+
+### Part 3: Advanced Features
+
+#### Currency Converter
+- Convert expense and income amounts to a user-selected currency (e.g., ZAR, USD, EUR).
+- Displays amounts with appropriate currency symbols (e.g., R, $, €) in all views (Home, Categories, Reports).
+- Implemented as a utility class (`CurrencyConverter.kt`), applied to expense lists and charts.
+- Supports consistent financial tracking across different currencies.
+
+#### Reminders Page
+- New page accessible via bottom navigation or settings.
+- Allows users to set reminders for:
+  - Entering daily expenses or income.
+  - Reviewing budget goal progress (e.g., nearing max goal).
+  - Upcoming due dates for bills or subscriptions.
+- Uses Firebase Cloud Messaging (FCM) for push notifications, even when the app is closed.
+- UI includes options to set reminder frequency (daily, weekly) and time.
+
+#### Graph Page (Reports)
+- Dedicated **Reports Page** (`ReportsActivity.kt`) for visualizing financial data.
+- Features two charts powered by MPAndroidChart:
+  - **Spending Chart**: Bar chart comparing expenses (blue) and income (green) by category, with min goal (magenta line) and max goal (red line) overlays.
+  - **Goals Chart**: Bar chart showing min goals (green) and max goals (red) per category.
+- Filterable by period: last week, last month, or custom date range (via date picker).
+- Left-aligned legends for clarity (e.g., "Expenses," "Income," "Min Goal," "Max Goal").
+- Displays currency-converted amounts with symbols.
+- Shows a toast ("No transactions for this time period") when no data is available.
+
+#### Firebase Cloud Storage
+- Replaced RoomDB with Firebase Firestore for cloud-based storage (`ExpenseRepository.kt`, `GoalRepository.kt`).
+- Stores expenses, goals, and categories in a user-specific collection (`users/{userId}`).
+- Supports:
+  - Real-time data syncing across devices.
+  - Offline access with Firestore’s built-in caching.
+  - Secure access via Firebase Authentication (user ID-based rules).
+- Data structure:
+  - Expenses: `category`, `amount`, `type` (income/expense), `date` (dd/MM/yyyy), `timestamp`, `photoPath`.
+  - Goals: `category`, `month` (MM/yyyy), `minGoal`, `maxGoal`, `photoPath`.
+- Ensures data persistence and backup, replacing local-only storage from Part 2.
 
 ## Usage Instructions
 
@@ -134,7 +184,7 @@ Cashify is built for reliability, security, and responsiveness, making it ideal 
 2. Enter a username, valid email, and password (minimum 6 characters).
 3. Click **Signup** to create an account and go to the **Login Page**.
 4. Already have an account? Click **Switch to Login** to go to the **Login Page**.
-5. Make sure to enable the Notifications option in the Apps **Settings**.
+5. Enable notifications in **Settings > Apps > Cashify** for reminders.
 
 ### Login Page
 1. Enter your email and password.
@@ -143,39 +193,42 @@ Cashify is built for reliability, security, and responsiveness, making it ideal 
 
 ### Home Page
 1. Displays a list of all expenses (`rvExpenses`) with details:
-   - Category, amount (green for income, red for expense), date, description, time range, photo (if added).
+   - Category, amount (green for income, red for expense, with currency symbol), date, description, time range, photo (if added).
 2. Click an expense’s photo (`ivPhoto`) to view it full-size in `PhotoViewActivity` (click **Back** to return).
 3. Click **Add Expense** to open the **Add Expense Page**.
 4. Use the bottom navigation bar to switch pages:
    - **Home** (current).
    - **Categories** (Categories Page).
    - **Goals** (Goals Page).
+   - **Reports** (Graph Page).
+   - **Reminders** (Reminders Page).
 
 ### Add Expense Page
 1. Enter details:
    - **Description**: Optional note (e.g., "Lunch at Cafe").
    - **Category**: Select or enter a category (e.g., "Food").
-   - **Amount**: Numeric value (e.g., 100.50).
+   - **Amount**: Numeric value (e.g., 100.50, converted to selected currency).
    - **Type**: Choose "income" or "expense".
    - **Date**: Select a date (format: dd/MM/yyyy, e.g., 15/05/2025).
    - **Start/End Time**: Specify time range (e.g., 12:00–13:00).
    - **Photo**: Optionally attach an image (e.g., receipt) via gallery or camera.
 2. Click **Save** to add the expense and return to the **Home Page**.
-3. The expense appears in the list and contributes to category/goal totals (if in the goal’s month).
+3. The expense syncs to Firestore and appears in the list, contributing to category/goal totals.
 
 ### Categories Page
-1. View a list of categories and total spending for a selected period (e.g., May 2025).
-2. Click **Add Category** to create a new category.
-3. Select a period to filter spending (e.g., month, year).
-4. Navigate to other pages via the bottom nav bar.
+1. View a list of categories and total spending (in selected currency) for a selected period (e.g., May 2025).
+2. Click a category to view expenses/income (`CategoryExpensesActivity`).
+3. Click **Add Category** to create a new category.
+4. Select a period to filter spending (e.g., month, year).
+5. Navigate to other pages via the bottom nav bar.
 
 ### Goals Page
 1. Displays a list of goals (`rvGoals`) with:
-   - Category, month (MM/yyyy), created date, description, type, min/max goals, photo, spent amount, progress bar, status.
+   - Category, month (MM/yyyy), created date, description, type, min/max goals (in selected currency), photo, spent amount, progress bar, status.
 2. Click **Add Goal** to open the **Add Goal Page**.
 3. Verify expenses contribute to goals:
-   - Example: Goal for "Entertainment" (month: 05/2025, min: R1000, max: R2500).
-   - Expense: R550 on 15/05/2025 → Shows "Spent: R550.00", 22% progress, "Below Goal".
+   - Example: Goal for "Entertainment" (month: 05/2025, min: $100, max: $250).
+   - Expense: $55 on 15/05/2025 → Shows "Spent: $55.00", 22% progress, "Below Goal".
 4. Navigate via the bottom nav bar.
 
 ### Add Goal Page
@@ -183,27 +236,32 @@ Cashify is built for reliability, security, and responsiveness, making it ideal 
    - **Category**: Select or enter a category (e.g., "Entertainment").
    - **Type**: Choose "income" or "expense".
    - **Month**: Select a month (MM/yyyy, e.g., 05/2025).
-   - **Min Goal**: Minimum target (e.g., 1000).
-   - **Max Goal**: Maximum budget (e.g., 2500).
+   - **Min Goal**: Minimum target (e.g., 100, in selected currency).
+   - **Max Goal**: Maximum budget (e.g., 250).
    - **Description**: Optional note.
    - **Photo**: Optionally attach an image.
-2. Click **Save** to add the goal and return to the **Goals Page**.
+2. Click **Save** to add the goal to Firestore and return to the **Goals Page**.
 3. The goal tracks expenses in the specified month.
 
+### Reports Page (Graph Page)
+1. Access via bottom navigation (**Reports**).
+2. Select a period (last week, last month, custom range) via a spinner.
+3. View:
+   - **Spending Chart**: Expenses (blue bars), income (green bars), min goals (magenta lines), max goals (red lines) by category.
+   - **Goals Chart**: Min goals (green bars), max goals (red bars) by category.
+4. Amounts display in the selected currency (e.g., R, $).
+5. If no transactions exist, a toast shows: "No transactions for this time period".
+6. Navigate to other pages via the bottom nav bar.
 
-## Future Requirements
-- **Spending Graphs**:
-  - Display daily and category-based spending charts for a selected period.
-  - Use libraries like MPAndroidChart for visualization.
-- **Progress Dashboard**:
-  - Show a monthly overview of budget goal progress.
-  - Highlight overspending categories in red.
-- **Gamification**:
-  - Award badges for meeting goals (e.g., "Budget Master" for 3 months within budget).
-  - Add a points system for consistent tracking.
-- **Notifications**:
-  - Alert users when approaching or exceeding goal limits.
-  - Schedule daily/weekly spending summaries.
+### Reminders Page
+1. Access via bottom navigation or settings.
+2. Set reminders for:
+   - Daily expense/income entry.
+   - Budget goal progress (e.g., nearing max goal).
+   - Bill or subscription due dates.
+3. Choose frequency (daily, weekly) and time.
+4. Save to enable push notifications via Firebase Cloud Messaging.
+5. Navigate to other pages via the bottom nav bar.
 
 ## Contributing
 1. Fork the repository.
@@ -215,7 +273,7 @@ Cashify is built for reliability, security, and responsiveness, making it ideal 
 
 **Guidelines**:
 - Follow Kotlin coding standards.
-- Update RoomDB migrations for schema changes.
+- Update Firestore rules for data changes.
 - Test on API 33/35 emulators.
 - Document new features in this README.
 
