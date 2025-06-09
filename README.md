@@ -6,8 +6,11 @@
 ## GitHub Link
 [https://github.com/ST10403514/Cashify_BudgetTracker](https://github.com/ST10403514/Cashify_BudgetTracker)
 
-## Demonstration Video
+## Demonstration Video - Part 2
 [https://youtu.be/cs7XJiEM3zw](https://youtu.be/cs7XJiEM3zw)
+
+## Demonstration Video - Part 3
+[https://youtu.be/F7GplhIbe3M](https://youtu.be/F7GplhIbe3M)
 
 ## Team Information
 **Members**:
@@ -150,10 +153,10 @@ Cashify is built for reliability, security, and responsiveness, making it ideal 
 - New page accessible via bottom navigation or settings.
 - Allows users to set reminders for:
   - Entering daily expenses or income.
-  - Reviewing budget goal progress (e.g., nearing max goal).
-  - Upcoming due dates for bills or subscriptions.
+  - Reviewing budget goal progress.
+  - Upcoming due dates for categories.
 - Uses Firebase Cloud Messaging (FCM) for push notifications, even when the app is closed.
-- UI includes options to set reminder frequency (daily, weekly) and time.
+- UI includes options to set reminder range (day, week, month) and time.
 
 #### Graph Page (Reports)
 - Dedicated **Reports Page** (`ReportsActivity.kt`) for visualizing financial data.
