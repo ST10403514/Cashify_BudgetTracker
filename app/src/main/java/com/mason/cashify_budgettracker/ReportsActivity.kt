@@ -260,7 +260,7 @@ class ReportsActivity : AppCompatActivity() {
         val currencySymbol = CurrencyConverter.getCurrencySymbol()
 
         //income bars
-        val incomeDataSet = BarDataSet(incomeEntries, "Income").apply {
+        val incomeDataSet = BarDataSet(incomeEntries, "Incomes").apply {
             color = android.graphics.Color.GREEN
             valueFormatter = object : com.github.mikephil.charting.formatter.ValueFormatter() {
                 override fun getFormattedValue(value: Float): String {
@@ -282,7 +282,7 @@ class ReportsActivity : AppCompatActivity() {
         //combine bar data
         val barData = BarData(incomeDataSet, expenseDataSet).apply {
             barWidth = 0.2f
-            groupBars(-0.5f, 0.4f, 0.1f) // Start at -0.5, group width 0.4, gap 0.1
+            groupBars(-0.5f, 0.4f, 0.1f)
         }
 
         //min goal lines
@@ -294,7 +294,7 @@ class ReportsActivity : AppCompatActivity() {
                 )
             } ?: emptyList()
         }.flatten()
-        val minLineDataSet = LineDataSet(minLineEntries, "Min Goal").apply {
+        val minLineDataSet = LineDataSet(minLineEntries, "Min Goals").apply {
             color = ContextCompat.getColor(this@ReportsActivity, R.color.purple_500)
             lineWidth = 2f
             setDrawCircles(false)
@@ -310,7 +310,7 @@ class ReportsActivity : AppCompatActivity() {
                 )
             } ?: emptyList()
         }.flatten()
-        val maxLineDataSet = LineDataSet(maxLineEntries, "Max Goal").apply {
+        val maxLineDataSet = LineDataSet(maxLineEntries, "Max Goals").apply {
             color = ContextCompat.getColor(this@ReportsActivity, R.color.purple_800)
             lineWidth = 2f
             setDrawCircles(false)
@@ -343,14 +343,14 @@ class ReportsActivity : AppCompatActivity() {
             }
             axisRight.isEnabled = false
             description.isEnabled = false
-            setExtraOffsets(20f, 20f, 20f, 20f)
+            setExtraOffsets(0f, 20f, 0f, 20f)
             legend.isEnabled = true
             legend.form = com.github.mikephil.charting.components.Legend.LegendForm.SQUARE
             legend.textSize = 12f
             legend.horizontalAlignment = com.github.mikephil.charting.components.Legend.LegendHorizontalAlignment.LEFT
             legend.verticalAlignment = com.github.mikephil.charting.components.Legend.LegendVerticalAlignment.TOP
-            legend.xEntrySpace = 30f
-            legend.xOffset = 10f
+            legend.xEntrySpace = 25f
+            legend.xOffset = -45f
             animateY(1000)
             invalidate()
         }
@@ -408,14 +408,14 @@ class ReportsActivity : AppCompatActivity() {
             }
             axisRight.isEnabled = false
             description.isEnabled = false
-            setExtraOffsets(20f, 20f, 20f, 20f)
+            setExtraOffsets(0f, 20f, 0f, 20f)
             legend.isEnabled = true
             legend.form = com.github.mikephil.charting.components.Legend.LegendForm.SQUARE
             legend.textSize = 12f
             legend.horizontalAlignment = com.github.mikephil.charting.components.Legend.LegendHorizontalAlignment.LEFT
             legend.verticalAlignment = com.github.mikephil.charting.components.Legend.LegendVerticalAlignment.TOP
-            legend.xEntrySpace = 30f
-            legend.xOffset = 10f
+            legend.xEntrySpace = 25f
+            legend.xOffset = -45f
             animateY(1000)
             invalidate()
         }

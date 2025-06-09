@@ -28,6 +28,7 @@ class CategoryExpensesActivity : AppCompatActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        //inflate layout and set the content view
         try {
             binding = ActivityCategoriesExpensesBinding.inflate(layoutInflater)
             setContentView(binding.root)
@@ -39,6 +40,7 @@ class CategoryExpensesActivity : AppCompatActivity() {
             return
         }
 
+        //initialize Firebase Authentication
         auth = FirebaseAuth.getInstance()
         if (auth.currentUser == null) {
             Log.w("CategoryExpensesActivity", "No user logged in, redirecting to AuthActivity")
@@ -52,6 +54,7 @@ class CategoryExpensesActivity : AppCompatActivity() {
             finish()
         }
 
+        //get category and date range from intent
         category = intent.getStringExtra("category")?.trim() ?: ""
         startDate = intent.getLongExtra("startDate", -1).takeIf { it != -1L }
         endDate = intent.getLongExtra("endDate", -1).takeIf { it != -1L }
@@ -80,6 +83,7 @@ class CategoryExpensesActivity : AppCompatActivity() {
         }
     }
 
+    //sets up the RecyclerView with an adapter and click listener for viewing photos
     private fun setupRecyclerView() {
         expenseAdapter = ExpenseAdapter(mutableListOf()) { expense ->
             try {
@@ -103,6 +107,7 @@ class CategoryExpensesActivity : AppCompatActivity() {
         Log.d("CategoryExpensesActivity", "RecyclerView set up")
     }
 
+    //sets up bottom navbar
     private fun setupBottomNavigation() {
         binding.bottomNav.selectedItemId = R.id.nav_categories
         binding.bottomNav.setOnItemSelectedListener { item ->
@@ -132,6 +137,7 @@ class CategoryExpensesActivity : AppCompatActivity() {
         }
     }
 
+    //loads expenses and filters them by category and date range
     private fun loadExpenses() {
         lifecycleScope.launch {
             val userId = auth.currentUser?.uid ?: return@launch
