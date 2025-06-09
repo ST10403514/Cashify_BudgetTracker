@@ -147,7 +147,9 @@ Cashify is built for reliability, security, and responsiveness, making it ideal 
 - Convert expense and income amounts to a user-selected currency (e.g., ZAR, USD, EUR).
 - Displays amounts with appropriate currency symbols (e.g., R, $, €) in all views (Home, Categories, Reports).
 - Implemented as a utility class (`CurrencyConverter.kt`), applied to expense lists and charts.
+- Makes use of an API to convert currencies.
 - Supports consistent financial tracking across different currencies.
+- This feature was newly introduced in Part 3 and was not present in Part 1.
 
 #### Reminders Page
 - New page accessible via bottom navigation or settings.
@@ -157,6 +159,7 @@ Cashify is built for reliability, security, and responsiveness, making it ideal 
   - Upcoming due dates for categories.
 - Uses Firebase Cloud Messaging (FCM) for push notifications, even when the app is closed.
 - UI includes options to set reminder range (day, week, month) and time.
+- Builds on the Calendar feature from Part 1 by adding proactive notifications and user-defined reminders.
 
 #### Graph Page (Reports)
 - Dedicated **Reports Page** (`ReportsActivity.kt`) for visualizing financial data.
@@ -279,6 +282,28 @@ Cashify is built for reliability, security, and responsiveness, making it ideal 
 - Update Firestore rules for data changes.
 - Test on API 33/35 emulators.
 - Document new features in this README.
+
+## Design Considerations
+Cashify was designed with a user-first approach, prioritizing accessibility, clarity, and responsiveness. Key design principles included:
+
+- **Mobile-First UI**: Optimized for small screens using Material Design.
+- **Offline-First Architecture**: Local RoomDB ensures the app remains usable without internet access.
+- **Cloud Synchronization**: Firebase Firestore provides seamless real-time syncing across devices.
+- **Modular Codebase**: Features are separated into repositories and services (e.g., `ExpenseRepository`, `GoalRepository`) for maintainability.
+- **Asynchronous Operations**: Kotlin Coroutines were used to ensure smooth UI interactions during data loading.
+
+## GitHub and CI/CD
+Cashify's development leveraged GitHub for version control and collaboration. Key practices included:
+
+- *Branching Strategy*: Feature branches were created for major modules (e.g., feature-auth, feature-goals), then merged via pull requests after code review.
+- *Issues and Project Boards*: GitHub Issues were used to track bugs and feature requests. A GitHub Project Board tracked development progress.
+
+### GitHub Actions
+GitHub Actions was used to automate key workflows:
+- *CI Pipeline*: Automatically builds the project on push to main and dev branches to ensure code integrity.
+- *Linting and Static Analysis*: Runs ktlint and detekt to maintain code quality.
+- *Unit Test Execution*: Executes all unit tests on pull request creation.
+- *APK Build Artifact*: Uploads debug APKs as build artifacts for easy testing and distribution.
 
 ## License
 [MIT License](LICENSE)  
